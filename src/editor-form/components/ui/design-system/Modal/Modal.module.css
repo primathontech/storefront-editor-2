@@ -1,0 +1,90 @@
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modalContainer {
+  background-color: #ffffff;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.modalContainer-sm {
+  width: 100%;
+  max-width: 480px;
+}
+
+.modalContainer-md {
+  width: 100%;
+  max-width: 640px;
+}
+
+.modalContainer-lg {
+  width: 100%;
+  max-width: 1000px;
+}
+
+.modalHeader {
+  height: 44px;
+  padding: 12px;
+  border-bottom: 1px solid #d7d7d7;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.modalTitle {
+  margin: 0;
+  font-family: var(
+    --font-inter,
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif
+  );
+  font-size: 16px;
+  font-weight: 500;
+  color: #333333;
+}
+
+.modalHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modalContent {
+  flex: 1;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+}
+
+.modalFooter {
+  padding: 12px;
+  border-top: 1px solid #d7d7d7;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modalPrimaryButton {
+  min-width: 128px;
+}

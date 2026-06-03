@@ -1,0 +1,266 @@
+/* Dropdown Component Styles */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.container-full-width {
+  width: 100%;
+}
+
+.container-inline {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Label Styles */
+.label {
+  display: block;
+  font-family: var(
+    --font-inter,
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif
+  );
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #666666;
+  margin-bottom: 0;
+}
+
+.label-inline {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+.label-error {
+  color: #dc2626;
+}
+
+/* Dropdown Wrapper */
+.dropdown-wrapper {
+  position: relative;
+  display: inline-block;
+  width: auto;
+}
+
+.container-inline .dropdown-wrapper {
+  flex: 0 0 220px; /* fixed control width to match Figma */
+}
+
+/* Trigger Button */
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  width: auto;
+  padding: 8px 12px;
+  border: 0.5px solid #d7d7d7;
+  border-radius: 4px;
+  background-color: #ffffff;
+  font-family:
+    "Inter",
+    "Inter:Semi_Bold",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 20px;
+  color: #333333;
+  cursor: pointer;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  text-align: left;
+}
+
+.trigger:hover:not(.trigger-disabled) {
+  border-color: #999999;
+}
+
+.trigger-open {
+  border-color: #999999;
+}
+
+.trigger-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f9fafb;
+}
+
+.trigger-error {
+  border-color: #dc2626;
+}
+
+.trigger-error:hover:not(.trigger-disabled) {
+  border-color: #dc2626;
+}
+
+/* Ghost Variant */
+.trigger-ghost {
+  border: none;
+  background-color: transparent;
+  outline: none;
+}
+
+.trigger-ghost:hover:not(.trigger-disabled) {
+  background-color: #f3f4f6;
+  border: none;
+}
+
+.trigger-ghost.trigger-open {
+  background-color: #f3f4f6;
+  border: none;
+}
+
+.trigger-ghost:focus-visible {
+  outline: none;
+}
+
+/* Trigger Text */
+.trigger-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Chevron Icon */
+.chevron {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: #333333;
+  transition: transform 0.15s ease;
+}
+
+.chevron-open {
+  transform: rotate(180deg);
+}
+
+/* Dropdown Menu */
+.menu {
+  position: fixed;
+  z-index: 1400;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  padding: 8px 0;
+}
+
+.menu-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  max-height: 476px;
+  overflow-y: auto;
+}
+
+/* Menu Group: wraps a group of items with consistent spacing */
+.menu-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+}
+
+/* Menu Item */
+.menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 12px 4px;
+  border: none;
+  background: #ffffff;
+  border-radius: 4px;
+  font-family:
+    "Inter",
+    "Inter:Regular",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #666666;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease;
+  gap: 4px;
+}
+
+.menu-item:hover:not(.menu-item-disabled) {
+  background-color: rgba(29, 74, 136, 0.05);
+}
+
+.menu-item-selected {
+  background-color: rgba(51, 119, 255, 0.1);
+  color: #1d4a88;
+  font-family:
+    "Inter",
+    "Inter:Medium",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-weight: 500;
+}
+
+.menu-item-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Menu Separator */
+.menu-separator {
+  height: 0;
+  width: 100%;
+  border-top: 0.5px solid #d7d7d7;
+  margin: 0;
+}
+
+/* Helper Text */
+.helper-text {
+  font-family: var(
+    --font-inter,
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif
+  );
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  margin-top: 0;
+  color: #6b7280;
+}
+
+.helper-text-error {
+  color: #dc2626;
+}

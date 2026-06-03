@@ -1,0 +1,223 @@
+/* Dropdown Component Styles */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.container-full-width {
+  width: 100%;
+}
+
+.container-inline {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Label Styles */
+.label {
+  display: block;
+  font-family: var(
+    --font-inter,
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif
+  );
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #666666;
+  margin-bottom: 0;
+}
+
+.label-inline {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+.label-error {
+  color: #dc2626;
+}
+
+/* Dropdown Wrapper */
+.dropdown-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.container-inline .dropdown-wrapper {
+  flex: 0 0 220px; /* fixed control width to match Figma */
+}
+
+/* Trigger Button */
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0.5px solid #d7d7d7;
+  border-radius: 4px;
+  background-color: #ffffff;
+  font-family: var(
+    --font-inter,
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif
+  );
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #4b5563;
+  cursor: pointer;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  text-align: left;
+}
+
+.trigger:hover:not(.trigger-disabled) {
+  border-color: #999999;
+}
+
+.trigger-open {
+  border-color: #999999;
+}
+
+.trigger-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f9fafb;
+}
+
+.trigger-error {
+  border-color: #dc2626;
+}
+
+.trigger-error:hover:not(.trigger-disabled) {
+  border-color: #dc2626;
+}
+
+/* Trigger Text */
+.trigger-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Chevron Icon */
+.chevron {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: #333333;
+  transition: transform 0.15s ease;
+}
+
+.chevron-open {
+  transform: rotate(180deg);
+}
+
+/* Dropdown Menu */
+.menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 6px;
+  box-shadow: 0px 0px 6px 0px rgba(0, 0, 0, 0.09);
+  overflow: hidden;
+}
+
+.menu-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Menu Item */
+.menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 2px 8px;
+  border: none;
+  background: #ffffff;
+  border-radius: 6px;
+  font-family: var(
+    --font-inter,
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif
+  );
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #333333;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+
+.menu-item:hover:not(.menu-item-disabled) {
+  background-color: rgba(29, 74, 136, 0.05);
+}
+
+.menu-item-selected {
+  background-color: rgba(29, 74, 136, 0.1);
+  color: #1d4a88;
+  font-weight: 500;
+}
+
+.menu-item-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Helper Text */
+.helper-text {
+  font-family: var(
+    --font-inter,
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif
+  );
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  margin-top: 0;
+  color: #6b7280;
+}
+
+.helper-text-error {
+  color: #dc2626;
+}

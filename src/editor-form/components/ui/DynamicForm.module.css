@@ -1,0 +1,36 @@
+.fieldWrapper {
+  padding: 12px;
+  border-bottom: 0.5px solid #dfdfdf;
+  border-right: 0.5px solid #dfdfdf;
+}
+
+.rootWithHtmlField {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.helperText {
+  margin-top: 4px;
+  font-family: var(
+    --font-inter,
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif
+  );
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.helperTextError {
+  color: #dc2626;
+}
+
+.helperTextNormal {
+  color: #666666;
+}

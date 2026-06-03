@@ -1,0 +1,384 @@
+/**
+ * EditorAPI — direct HTTP to visual-editor-be (the editor backend) and
+ * to the storefront (which still hosts the in-app editor's legacy proxy
+ * routes — `/editor/api/*` — for auth / data-source / AI).
+ *
+ * Read endpoints (visual-editor-be):
+ *   GET  /api/v1/themes/{themeId}                              — theme structure
+ *   GET  /api/v1/themes/{themeId}/templates/{templateId}        — pageConfig
+ *   GET  /api/v1/themes/{themeId}/translations/{templateId}/{language}
+ *
+ * Write endpoints (visual-editor-be) — wired now, called when
+ * write-back lands:
+ *   PUT  /api/v1/themes/{themeId}/templates/{templateId}
+ *   PUT  /api/v1/themes/{themeId}/translations/{templateId}/{language}
+ *
+ * Storefront-hosted endpoints — auth/data-source proxies inherited from
+ * the in-app editor. Widget schemas + section library moved off HTTP and
+ * onto a postMessage handshake (EditorAssetPublisher → TemplateEditor).
+ *   POST /editor/api/merchant-validation               — auth check
+ *   POST /editor/api/data-source-options               — dropdown options
+ *
+ * Direct browser calls (key in VITE_ env, exposed in bundle) — temporary
+ * until visual-editor-be has its own proxy:
+ *   POST https://api.openai.com/v1/audio/transcriptions  — voice transcription
+ *   POST https://api.anthropic.com/v1/messages           — AI generation
+ *
+ * HTTP via ky:
+ *   - Throws on non-2xx (HTTPError) — no manual `!response.ok` plumbing.
+ *   - `retry: 0` because the editor's failure mode is an explicit error
+ *     screen at boot / surfaced to the user; no silent retries.
+ *   - Two instances because Spike 2 + the legacy proxy routes live on
+ *     the storefront origin while the BE endpoint surface is unbuilt.
+ */
+
+import ky from "ky";
+import { useAuthStore } from "../../stores/authStore";
+
+/** Standard `{ data: T }` envelope returned by visual-editor-be. */
+interface ApiEnvelope<T> {
+  data?: T;
+}
+
+/**
+ * Shape of `GET /api/v1/themes/{themeId}`. The BE wraps the theme inside
+ * `data.theme` (not just `data`), so the typed envelope captures that
+ * directly — callers get a `ThemeStructure` and never see the wrapper.
+ */
+export interface ThemeStructureTemplate {
+  id: string;
+  name?: string;
+  variant?: string;
+  isDynamic?: boolean;
+  supportedLanguages?: string[];
+  routeContext?: {
+    templateName?: string;
+    type?: string;
+    path?: string;
+    params?: Record<string, string>;
+    query?: Record<string, string>;
+    [key: string]: unknown;
+  };
+}
+export interface ThemeStructureGroup {
+  name: string;
+  templates?: ThemeStructureTemplate[];
+}
+export interface ThemeStructure {
+  id: string;
+  name: string;
+  templateCount?: number;
+  templateStructure: ThemeStructureGroup[];
+}
+
+const editorBe = ky.create({
+  prefix: import.meta.env.VITE_EDITOR_API_URL || "http://localhost:3000",
+  cache: "no-store",
+  retry: 0,
+  hooks: {
+    beforeRequest: [
+      ({ request }) => {
+        // Boot call sets Authorization explicitly; hook is a no-op there
+        // and fills the header for every post-boot call from authStore.
+        if (request.headers.has("Authorization")) return;
+        const token = useAuthStore.getState().token;
+        if (token) request.headers.set("Authorization", `Bearer ${token}`);
+      },
+    ],
+    afterResponse: [
+      ({ response }) => {
+        // TODO: mid-session 401 → emit TOKEN_EXPIRED to appBootMachine.
+        // Deferred until backend session/refresh shape lands (Lakshya §3).
+        // Boot-time 401 is already handled inside the authenticate actor.
+        if (response.status === 401) {
+          // intentionally no-op for now
+        }
+      },
+    ],
+  },
+});
+
+// Storefront-hosted legacy proxy routes (currently just
+// /editor/api/data-source-options). Built per-call so the prefix follows
+// the boot-machine's resolved merchant.previewOrigin. Collapses into
+// editorBe.get() the day these endpoints migrate to visual-editor-be.
+const storefrontKy = () => {
+  const previewOrigin = useAuthStore.getState().merchant?.previewOrigin;
+  if (!previewOrigin) {
+    throw new Error("previewOrigin not set; merchant not authenticated");
+  }
+  return ky.create({
+    prefix: previewOrigin,
+    cache: "no-store",
+    retry: 0,
+  });
+};
+
+export class EditorAPI {
+  // -- Reads --------------------------------------------------------------
+
+  static async getThemeStructure(themeId: string): Promise<ThemeStructure> {
+    const json = await editorBe
+      .get(`api/v1/themes/${themeId}`)
+      .json<ApiEnvelope<{ theme: ThemeStructure }>>();
+    const theme = json?.data?.theme;
+    if (!theme) {
+      throw new Error(
+        `Theme "${themeId}" response missing data.theme`,
+      );
+    }
+    return theme;
+  }
+
+  static async getTemplate(
+    themeId: string,
+    templateId: string,
+  ): Promise<unknown> {
+    const json = await editorBe
+      .get(`api/v1/themes/${themeId}/templates/${templateId}`)
+      .json<ApiEnvelope<{ template?: { pageConfig?: unknown } }>>();
+    const pageConfig = json?.data?.template?.pageConfig;
+    if (!pageConfig) {
+      throw new Error("Template response missing data.template.pageConfig");
+    }
+    return pageConfig;
+  }
+
+  static async getTranslation(
+    themeId: string,
+    templateId: string,
+    language: string,
+  ): Promise<Record<string, unknown>> {
+    try {
+      const json = await editorBe
+        .get(`api/v1/themes/${themeId}/translations/${templateId}/${language}`)
+        .json<ApiEnvelope<{ translations?: Record<string, unknown> }>>();
+      return json?.data?.translations ?? {};
+    } catch (err) {
+      // Translations are best-effort — some templates have no entries.
+      console.warn(
+        `Translation fetch ${templateId}/${language} failed; treating as empty.`,
+        err,
+      );
+      return {};
+    }
+  }
+
+  // Widget schemas + section library used to live here (GETs against the
+  // storefront's /api/editor/widget-schemas + /available-sections proxy
+  // routes). They now arrive over postMessage from the preview iframe —
+  // see EditorAssetPublisher on the storefront side, receiver in
+  // TemplateEditor. The corresponding stores are passive sinks.
+
+  // -- Writes (wired; not called until write-back lands) ------------------
+  //
+  // TODO(OFCE-48 concurrency): both saveTemplate and saveTranslation are
+  // last-write-wins today. If two editors are open on the same template,
+  // the second save silently clobbers the first. Standard fix is etag /
+  // If-Match: backend returns a `version` (or ETag) with each GET, client
+  // sends `If-Match: <version>` on PUT, backend rejects with 412 if
+  // stale → editor shows "someone else saved, reload." Needs the version
+  // to thread through `getTemplate` → `useEditorState` → here. Deferred
+  // until multi-editor scenarios are a real concern.
+
+  static async saveTemplate(
+    themeId: string,
+    templateId: string,
+    templateData: {
+      metadata: {
+        id: string;
+        name: string;
+        brand: string;
+        type: string;
+        version: string;
+        routeContext?: unknown;
+      };
+      layout?: unknown;
+      sections: unknown[];
+      dataSources: Record<string, unknown>;
+    },
+  ): Promise<{ templateId: string; version: string; savedAt: string }> {
+    const json = await editorBe
+      .put(`api/v1/themes/${themeId}/templates/${templateId}`, {
+        json: templateData,
+      })
+      .json<
+        ApiEnvelope<{ templateId: string; version: string; savedAt: string }>
+      >();
+    const result = json?.data;
+    if (!result) {
+      throw new Error("Save template response missing data");
+    }
+    return result;
+  }
+
+  static async saveTranslation(
+    themeId: string,
+    templateId: string,
+    language: string,
+    translations: Record<string, unknown>,
+  ): Promise<{ language: string; templateId: string; savedAt: string }> {
+    const json = await editorBe
+      .put(
+        `api/v1/themes/${themeId}/translations/${templateId}/${language}`,
+        { json: { translations } },
+      )
+      .json<
+        ApiEnvelope<{ language: string; templateId: string; savedAt: string }>
+      >();
+    return (
+      json?.data ?? {
+        language,
+        templateId,
+        savedAt: new Date().toISOString(),
+      }
+    );
+  }
+
+  // -- Auth / data-source / AI proxies (storefront-hosted today) ----------
+
+  /**
+   * Session loader — `GET /api/v1/merchants/{mid}` with bearer token.
+   * The merchant→VE mapping endpoint shipped (Lakshya §3 auth + §1
+   * `merchant.url` as preview origin); the only thing still stubbed is
+   * `previewOrigin` (see below).
+   */
+  // GET /api/v1/merchants/{mid} with bearer token — returns the merchant→VE
+  // mapping. We map `merchantName → themeId` and `url → previewOrigin` and
+  // drop the rest (`visualEditorId`, timestamps, the row's own id).
+  //
+  // Future: response will also carry `user` (identity) and editor prefs
+  // (editorLanguage, editorTheme — distinct from the storefront's content
+  // language and visual theme). Add them here at the boundary when needed.
+  static async authenticate(input: {
+    mid: string | null;
+    token: string | null;
+  }): Promise<{
+    token: string;
+    merchant: { id: string; themeId: string; previewOrigin: string };
+  }> {
+    // Missing-credential case is gated by the machine's `hasCredentials`
+    // guard before we ever reach here. The non-null assertions reflect that
+    // contract; bypassing the machine and calling this directly with nulls
+    // would intentionally throw at the runtime header set.
+    const json = await editorBe
+      .get(`api/v1/merchants/${input.mid!}`, {
+        headers: { Authorization: `Bearer ${input.token!}` },
+      })
+      .json<
+        ApiEnvelope<{
+          merchantId: string;
+          merchantName: string;
+          url: string;
+        }>
+      >();
+    const d = json?.data;
+    if (!d?.merchantId || !d?.merchantName || !d?.url) {
+      throw new Error("Merchant response missing required fields");
+    }
+    return {
+      token: input.token!,
+      merchant: {
+        id: d.merchantId,
+        themeId: d.merchantName,
+        // STUB: backend's `d.url` points at a not-yet-deployed merchant
+        // env that lacks the EditorAssetPublisher handshake. Pin to local
+        // momsco dev so the iframe loads code with the publisher. Drop
+        // the override (use `d.url` directly) once a storefront with
+        // these changes is deployed.
+        previewOrigin: "http://localhost:3000",
+      },
+    };
+  }
+
+  static async getDataSourceOptions(
+    type: "collections" | "products",
+  ): Promise<Array<{ value: string; label: string }>> {
+    try {
+      const json = await storefrontKy()
+        .post("editor/api/data-source-options", { json: { type } })
+        .json<ApiEnvelope<Array<{ value: string; label: string }>>>();
+      return json?.data ?? [];
+    } catch (err) {
+      console.error("Error fetching data source options:", err);
+      return [];
+    }
+  }
+
+  /**
+   * OpenAI Whisper transcription — direct browser call.
+   *
+   * TODO(OFCE-48 security): VITE_OPENAI_API_KEY is bundled into the
+   * editor JS and visible to anyone who opens DevTools. Move behind a
+   * visual-editor-be proxy — `POST /api/v1/ai/transcribe` injects the
+   * key server-side and forwards the multipart body. Frontend swaps the
+   * `api.openai.com` URL for `editorBe.post('api/v1/ai/transcribe', ...)`
+   * and drops the Authorization header (existing bearer flow covers it).
+   */
+  static async transcribeAudio(audioBlob: Blob): Promise<string> {
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error("VITE_OPENAI_API_KEY is not configured");
+    }
+    const form = new FormData();
+    form.append("file", audioBlob, "voice.webm");
+    form.append("model", "whisper-1");
+    // Force transcription language to English to keep behavior predictable
+    form.append("language", "en");
+    const response = await fetch(
+      "https://api.openai.com/v1/audio/transcriptions",
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}` },
+        body: form,
+      },
+    );
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      throw new Error(
+        `OpenAI Whisper error ${response.status}: ${errorText}`,
+      );
+    }
+    const data = (await response.json()) as { text?: string };
+    return data?.text ?? "";
+  }
+
+  /**
+   * Anthropic Messages API — direct browser call.
+   *
+   * TODO(OFCE-48 security): VITE_ANTHROPIC_API_KEY is bundled into the
+   * editor JS and visible to anyone who opens DevTools — and the
+   * `anthropic-dangerous-direct-browser-access` opt-in advertises that
+   * we know it. Move behind a visual-editor-be proxy —
+   * `POST /api/v1/ai/generate` injects the key server-side, forwards the
+   * JSON body, drops the dangerous-direct-browser header.
+   */
+  static async anthropicMessages(requestBody: unknown): Promise<unknown> {
+    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      throw new Error("VITE_ANTHROPIC_API_KEY is not configured");
+    }
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "structured-outputs-2025-11-13",
+        "anthropic-dangerous-direct-browser-access": "true",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      throw new Error(
+        `Anthropic API error ${response.status}: ${errorText}`,
+      );
+    }
+    return response.json();
+  }
+}
+
+export const api = {
+  editor: EditorAPI,
+};

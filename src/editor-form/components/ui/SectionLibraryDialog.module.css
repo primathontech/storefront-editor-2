@@ -1,0 +1,349 @@
+.generate-button {
+  --gradient-x: 50%;
+  --gradient-y: 50%;
+  position: relative;
+  width: 140px;
+  height: 32px;
+  background: radial-gradient(
+    circle at var(--gradient-x) var(--gradient-y),
+    #7a45f0 0%,
+    #7a45f0 5%,
+    #6b2ef0 25%,
+    #5a2ee0 55%,
+    #6b2ef0 100%
+  );
+  animation: generate-button-gradient-shift 4s ease-in-out infinite;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+@keyframes generate-button-gradient-shift {
+  /* Match stars timing: Hold at start - smaller circle */
+  0%,
+  25% {
+    --gradient-x: 45%;
+    --gradient-y: 35%;
+  }
+
+  /* Match stars timing: Smooth, longer transition period */
+  26%,
+  38% {
+    --gradient-x: 60%;
+    --gradient-y: 30%;
+  }
+
+  /* Match stars timing: Hold period */
+  39%,
+  50% {
+    --gradient-x: 60%;
+    --gradient-y: 30%;
+  }
+
+  /* Match stars timing: Smooth, longer transition period */
+  51%,
+  63% {
+    --gradient-x: 50%;
+    --gradient-y: 70%;
+  }
+
+  /* Match stars timing: Hold period */
+  64%,
+  75% {
+    --gradient-x: 50%;
+    --gradient-y: 70%;
+  }
+
+  /* Match stars timing: Smooth, longer transition back */
+  76%,
+  88% {
+    --gradient-x: 35%;
+    --gradient-y: 50%;
+  }
+
+  /* Match stars timing: Hold before repeat */
+  89%,
+  100% {
+    --gradient-x: 45%;
+    --gradient-y: 35%;
+  }
+}
+
+.generate-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  /* 👈 REQUIRED: border thickness */
+  border-radius: 4px;
+  background: linear-gradient(278.21deg, #8c58ff 58.67%, #ffffff 91.85%);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.sparkle-icon {
+  position: relative;
+  width: 20px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.generate-button .sparkle-icon {
+  width: 18px;
+  height: 14px;
+}
+
+/* Smooth size rotation with better timing - Generate button specific */
+@keyframes sparkle-size-rotate-button {
+  /* Hold at medium */
+  0%,
+  25% {
+    width: 9px;
+    height: 9px;
+  }
+
+  /* Smooth, longer transition to small */
+  26%,
+  38% {
+    width: 6px;
+    height: 6px;
+  }
+
+  /* Hold at small */
+  39%,
+  50% {
+    width: 6px;
+    height: 6px;
+  }
+
+  /* Smooth, longer transition to large */
+  51%,
+  63% {
+    width: 12px;
+    height: 12px;
+  }
+
+  /* Hold at large */
+  64%,
+  75% {
+    width: 12px;
+    height: 12px;
+  }
+
+  /* Smooth, longer transition back to medium */
+  76%,
+  88% {
+    width: 9px;
+    height: 9px;
+  }
+
+  /* Hold at medium before repeat */
+  89%,
+  100% {
+    width: 9px;
+    height: 9px;
+  }
+}
+
+.generate-button .sparkle-main {
+  position: relative;
+  z-index: 2;
+  /* Main starts at 9px, cycles: 9 → 6 → 12 → 9 */
+  animation: sparkle-size-rotate-button 4s ease-in-out infinite;
+  width: 9px;
+  height: 9px;
+  will-change: width, height;
+}
+
+.generate-button .sparkle-small {
+  position: absolute;
+  /* Small sparkles also cycle through all sizes */
+  animation: sparkle-size-rotate-button 4s ease-in-out infinite;
+  will-change: width, height;
+}
+
+.generate-button .sparkle-top-left {
+  top: -2px;
+  left: -4px;
+  /* Top-left starts at 6px, cycles: 6 → 12 → 9 → 6 (1.33s offset) */
+  animation: sparkle-size-rotate-button 4s ease-in-out infinite;
+  animation-delay: 1.33s;
+  width: 6px;
+  height: 6px;
+  will-change: width, height;
+}
+
+.generate-button .sparkle-bottom-right {
+  bottom: -3px;
+  left: -5px;
+  /* Bottom-right starts at 12px, cycles: 12 → 9 → 6 → 12 (2.67s offset) */
+  animation: sparkle-size-rotate-button 4s ease-in-out infinite;
+  animation-delay: 2.67s;
+  width: 12px;
+  height: 12px;
+  will-change: width, height;
+}
+
+/* Sparkle icons in Generate button should be white */
+.generate-button .sparkle-main path,
+.generate-button .sparkle-small path {
+  fill: white;
+}
+
+/* Shared sizing for Section Library / Generate modals */
+.section-dialog-surface :global(.dialog-surface-root) {
+  width: 518px;
+  border-radius: 8px !important;
+}
+
+.section-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  border-radius: 4px;
+  padding: 4px 8px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.section-option-active {
+  background: #3377ff1a;
+}
+
+.section-option-label {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  font-weight: 600;
+  font-style: normal;
+  font-size: 12px;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: #666666;
+}
+
+.section-option-active .section-option-label {
+  color: #1d4a88;
+}
+
+.empty-state-text {
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: center;
+  padding-top: 32px;
+  padding-bottom: 32px;
+}
+
+/* Dialog Content */
+.dialog-content {
+  height: 330px;
+}
+
+/* Content Container */
+.content-container {
+  display: flex;
+  gap: 16px;
+  min-height: 0;
+  height: 100%;
+}
+
+/* Section List */
+.section-list {
+  width: 33.333333%;
+  max-height: 100%;
+  overflow-y: auto;
+  padding-right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Preview Container */
+.preview-container {
+  height: 100%;
+  flex: 1;
+  border: 1px dashed #e5e7eb;
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  background-color: #f9fafb;
+}
+
+/* Preview Label */
+.preview-label {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+/* Preview Content */
+.preview-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Preview Image Wrapper */
+.preview-image-wrapper {
+  width: 100%;
+  max-width: 100%;
+  max-height: 288px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease;
+}
+
+.preview-image-wrapper:hover {
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Preview Image */
+.preview-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* No Preview Text */
+.no-preview-text {
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: center;
+  padding-top: 32px;
+  padding-bottom: 32px;
+}
