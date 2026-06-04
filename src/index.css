@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+/* Design tokens lifted from legacy *.module.css (Sidebar, EditorHeader,
+   BuilderToolbar, SettingsSidebar) so new Tailwind components match the
+   established look without duplicating hex values. */
+@theme {
+  --color-editor-text: #333333;
+  --color-editor-text-muted: #666666;
+  --color-editor-border: #dfdfdf;
+  --color-editor-canvas: #f1f5f9;
+}
+
+/* Legacy `--editor-*` palette consumed by ported `*.module.css` files
+   (Dialog, SettingsSidebar, etc.). Light-theme values lifted from the
+   old submodule's editor-theme.css. Kept separate from @theme above
+   because these aren't Tailwind utilities — just plain CSS vars the
+   module.css files reference by name. */
+:root {
+  --editor-bg: #f9fafb;
+  --editor-surface: #ffffff;
+  --editor-surface-muted: #f3f4f6;
+  --editor-border: #e5e7eb;
+  --editor-accent: #2563eb;
+  --editor-text: #0f172a;
+  --editor-text-muted: #6b7280;
+  --editor-text-subtle: #9ca3af;
+}
+
+body {
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+
+@keyframes editorPreviewProgress {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}

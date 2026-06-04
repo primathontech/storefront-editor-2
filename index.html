@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      CSP frame-src: restrict which origins the editor can iframe.
+      previewOrigin is merchant-set (returned by the backend's merchant
+      record), so we can't hardcode the exact list. Practical bound:
+      allow https:* (production storefronts) and http://localhost:* (dev).
+      Blocks javascript:, data:, and any plain-http production storefront
+      slipping through the auth flow. Tighten if/when previewOrigin is
+      ever validated against an allowlist at boot time.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="frame-src 'self' https: http://localhost:*"
+    />
+    <title>storefront-editor-2</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

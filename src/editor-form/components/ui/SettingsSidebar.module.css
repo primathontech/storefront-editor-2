@@ -1,0 +1,78 @@
+/* Settings Sidebar Styles */
+
+.title {
+  font-family: var(
+    --font-inter,
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif
+  );
+  font-size: 14px;
+  font-weight: 600; /* Semi-Bold */
+  line-height: 1.4;
+  color: #333333;
+  margin: 0;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 16px;
+}
+
+.emptyStateIcon {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.emptyStateTitle {
+  font-family: var(
+    --font-inter,
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif
+  );
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: #333333;
+  margin-bottom: 4px;
+}
+
+.emptyStateDescription {
+  font-family: var(
+    --font-inter,
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif
+  );
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #666666;
+}
