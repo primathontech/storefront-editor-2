@@ -114,6 +114,41 @@ const storefrontKy = () => {
   });
 };
 
+/**
+ * Resolve the preview origin the editor iframes + postMessages against.
+ *
+ * Base is the merchant's deployed storefront URL (`merchant.url` from the
+ * mapping). A dev-only override lets a developer point the cloud editor at
+ * their local store while iterating on JSX:
+ *
+ *   https://editor-dev…/?mid=…&previewOrigin=http://localhost:3000
+ *
+ * Two gates keep this from being an open postMessage redirect — `previewOrigin`
+ * is both the outbound `targetOrigin` and the inbound `allowedOrigins`:
+ *   - VITE_ALLOW_PREVIEW_ORIGIN_OVERRIDE — set only on dev/QA editor builds,
+ *     absent in prod, so a prod editor ignores the param entirely.
+ *   - localhost / 127.0.0.1 only — even on dev/QA the override can't be pointed
+ *     at an attacker origin.
+ *
+ * Always normalized to a bare origin (no trailing slash) so it exact-matches
+ * `event.origin` in the postMessage gate.
+ */
+function pickPreviewOrigin(deployedUrl: string): string {
+  const strip = (s: string) => s.replace(/\/+$/, "");
+  const raw =
+    typeof location !== "undefined"
+      ? new URLSearchParams(location.search).get("previewOrigin")
+      : null;
+  // Normalize before gating so a trailing slash doesn't silently fail the
+  // match and fall back to the deployed URL.
+  const override = raw ? strip(raw) : null;
+  const allowed =
+    import.meta.env.VITE_ALLOW_PREVIEW_ORIGIN_OVERRIDE === "true" &&
+    !!override &&
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(override);
+  return allowed ? override! : strip(deployedUrl);
+}
+
 export class EditorAPI {
   // -- Reads --------------------------------------------------------------
 
@@ -280,9 +315,10 @@ export class EditorAPI {
       merchant: {
         id: d.merchantId,
         themeId: d.merchantName,
-        // Normalize to a bare origin — postMessage allowedOrigins matches
-        // event.origin (never trailing-slashed) by exact string equality.
-        previewOrigin: d.url.replace(/\/+$/, ""),
+        // Deployed storefront URL by default; dev-only `?previewOrigin=`
+        // override redirects the preview at a local store. Normalized to a
+        // bare origin so it exact-matches event.origin in the postMessage gate.
+        previewOrigin: pickPreviewOrigin(d.url),
       },
     };
   }
