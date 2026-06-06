@@ -114,6 +114,41 @@ const storefrontKy = () => {
   });
 };
 
+/**
+ * Resolve the preview origin the editor iframes + postMessages against.
+ *
+ * Base is the merchant's deployed storefront URL (`merchant.url` from the
+ * mapping). A dev-only override lets a developer point the cloud editor at
+ * their local store while iterating on JSX:
+ *
+ *   https://editor-dev…/?mid=…&previewOrigin=http://localhost:3000
+ *
+ * Two gates keep this from being an open postMessage redirect — `previewOrigin`
+ * is both the outbound `targetOrigin` and the inbound `allowedOrigins`:
+ *   - VITE_ALLOW_PREVIEW_ORIGIN_OVERRIDE — set only on dev/QA editor builds,
+ *     absent in prod, so a prod editor ignores the param entirely.
+ *   - localhost / 127.0.0.1 only — even on dev/QA the override can't be pointed
+ *     at an attacker origin.
+ *
+ * Always normalized to a bare origin (no trailing slash) so it exact-matches
+ * `event.origin` in the postMessage gate.
+ */
+function pickPreviewOrigin(deployedUrl: string): string {
+  const strip = (s: string) => s.replace(/\/+$/, "");
+  const raw =
+    typeof location !== "undefined"
+      ? new URLSearchParams(location.search).get("previewOrigin")
+      : null;
+  // Normalize before gating so a trailing slash doesn't silently fail the
+  // match and fall back to the deployed URL.
+  const override = raw ? strip(raw) : null;
+  const allowed =
+    import.meta.env.VITE_ALLOW_PREVIEW_ORIGIN_OVERRIDE === "true" &&
+    !!override &&
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(override);
+  return allowed ? override! : strip(deployedUrl);
+}
+
 export class EditorAPI {
   // -- Reads --------------------------------------------------------------
 
@@ -240,8 +275,7 @@ export class EditorAPI {
   /**
    * Session loader — `GET /api/v1/merchants/{mid}` with bearer token.
    * The merchant→VE mapping endpoint shipped (Lakshya §3 auth + §1
-   * `merchant.url` as preview origin); the only thing still stubbed is
-   * `previewOrigin` (see below).
+   * `merchant.url` as preview origin), so this is the live fetch.
    */
   // GET /api/v1/merchants/{mid} with bearer token — returns the merchant→VE
   // mapping. We map `merchantName → themeId` and `url → previewOrigin` and
@@ -281,12 +315,10 @@ export class EditorAPI {
       merchant: {
         id: d.merchantId,
         themeId: d.merchantName,
-        // STUB: backend's `d.url` points at a not-yet-deployed merchant
-        // env that lacks the EditorAssetPublisher handshake. Pin to local
-        // momsco dev so the iframe loads code with the publisher. Drop
-        // the override (use `d.url` directly) once a storefront with
-        // these changes is deployed.
-        previewOrigin: "http://localhost:3000",
+        // Deployed storefront URL by default; dev-only `?previewOrigin=`
+        // override redirects the preview at a local store. Normalized to a
+        // bare origin so it exact-matches event.origin in the postMessage gate.
+        previewOrigin: pickPreviewOrigin(d.url),
       },
     };
   }
