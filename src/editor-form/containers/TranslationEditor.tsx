@@ -473,6 +473,10 @@ export default function TranslationEditor({
                   src={previewUrl}
                   style={RESPONSIVE_FRAME_STYLE[device]}
                   title="translation preview"
+                  // See TemplateEditor: `origin` keeps the editor origin reaching
+                  // an http://localhost store from an HTTPS editor (the default
+                  // policy strips the referrer on downgrade, breaking the bridge).
+                  referrerPolicy="origin"
                   sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals"
                 />
               )}
