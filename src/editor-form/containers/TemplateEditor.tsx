@@ -283,14 +283,17 @@ export default function TemplateEditor({
                 src={previewUrl}
                 style={RESPONSIVE_FRAME_STYLE[device]}
                 title="preview"
-                // `origin` (not the default `strict-origin-when-cross-origin`)
-                // so the editor's origin still reaches the iframe when an HTTPS
-                // editor previews an http://localhost store — the downgrade would
-                // otherwise strip the referrer, and the iframe-side bridge gate
-                // (resolveEditorOrigin) needs it to identify + trust the editor.
-                // `origin` survives the downgrade and sends only the origin, so
-                // the URL's token isn't leaked to the store.
-                referrerPolicy="origin"
+                // dev/QA only (VITE_ALLOW_PREVIEW_ORIGIN_OVERRIDE): when the
+                // editor previews an http://localhost store, the HTTPS→http
+                // downgrade strips the referrer under the default policy, so the
+                // iframe-side bridge gate (resolveEditorOrigin) can't identify
+                // the editor. `origin` survives the downgrade and sends only the
+                // origin (no token leak). Prod keeps the secure default.
+                referrerPolicy={
+                  import.meta.env.VITE_ALLOW_PREVIEW_ORIGIN_OVERRIDE === "true"
+                    ? "origin"
+                    : undefined
+                }
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals"
               />
             </div>
