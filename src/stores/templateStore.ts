@@ -358,18 +358,29 @@ export const useTemplateStore = create<TemplateStore>()(
           const sections = [...(state.pageConfig?.sections || [])];
           const i = sections.findIndex((s: any) => s.id === sectionId);
           if (i === -1) return {};
-          const section = {
-            ...sections[i],
-            visibility: {
-              ...(sections[i].visibility || {}),
-              [breakpoint]: visible,
+          // Visibility lives at `settings.responsive[bp].visible` — that's
+          // where both the sidebar (BuilderToolbar) reads it and the
+          // iframe (SectionWrapperEditor) reads it to apply the
+          // `hidden-{bp}` class. Write it there, not on a separate
+          // `section.visibility` key.
+          const prevSettings = sections[i].settings ?? {};
+          const prevResponsive = prevSettings.responsive ?? {};
+          const newSettings = {
+            ...prevSettings,
+            responsive: {
+              ...prevResponsive,
+              [breakpoint]: {
+                ...(prevResponsive[breakpoint] || {}),
+                visible,
+              },
             },
           };
-          sections[i] = section;
-          // Visibility lives on `section.visibility`, but the iframe-side
-          // wrapper merges the override onto settings — repost the
-          // (unchanged) settings so the override stays alive.
-          commitClientSection(sectionId, section.settings ?? {});
+          sections[i] = { ...sections[i], settings: newSettings };
+          // Commit the FULL updated settings: the iframe-side override
+          // merge is shallow (`{ ...settings, ...override }`), so it
+          // replaces `responsive` wholesale — the payload must carry the
+          // merged responsive object for the change to land.
+          commitClientSection(sectionId, newSettings);
           return { pageConfig: { ...state.pageConfig, sections } };
         }),
 

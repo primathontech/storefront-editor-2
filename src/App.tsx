@@ -112,7 +112,7 @@ const App = () => {
 
   return (
     <>
-      <Toaster position="bottom-right" />
+      <Toaster position="top-center" />
       {screen ? <FullPageMessage {...screen} /> : <ThemeSession />}
     </>
   );
