@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useMachine } from "@xstate/react";
 import { fromCallback, fromPromise } from "xstate";
+import { toast } from "react-hot-toast";
 import { Editor } from "../../Editor";
 import { PreviewMessage } from "../../components/PreviewMessage";
 import { SidebarSkeleton } from "../../components/SidebarSkeleton";
@@ -77,7 +78,7 @@ export default function TemplateEditor({
               throw new Error("Missing themeId or currentTemplate.id");
             }
             if (!pc) throw new Error("No pageConfig to save");
-            await EditorAPI.saveTemplate(themeId, tmpl.id, {
+            const res = await EditorAPI.saveTemplate(themeId, tmpl.id, {
               metadata: {
                 id: tmpl.id,
                 name: tmpl.name || pc.metadata?.name || "Template",
@@ -90,6 +91,7 @@ export default function TemplateEditor({
               sections: pc.sections,
               dataSources: pc.dataSources,
             });
+            toast.success(res.message || "Template updated successfully");
           }),
 
           saveTranslations: fromPromise(async () => {

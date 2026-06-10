@@ -142,7 +142,12 @@ export function commitClientSection(
 // (optionally narrowed to a widget) and scroll it into view. Fire-and-
 // forget — user-initiated selection is low frequency, no debounce.
 // echo:false on the iframe side; selection state is canonical here.
-export function focusSection(sectionId: string, widgetId?: string): void {
+// Pass `null` to clear the iframe's selection (keeps it in sync when the
+// editor closes the settings drawer).
+export function focusSection(
+  sectionId: string | null,
+  widgetId?: string,
+): void {
   if (!channel) return;
   channel.send("focusSection", {
     sectionId,
