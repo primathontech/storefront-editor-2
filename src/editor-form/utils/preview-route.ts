@@ -16,7 +16,14 @@
  */
 
 export function isUnhydratedPath(path: string | undefined): boolean {
-  return typeof path === "string" && path.includes(":");
+  if (typeof path !== "string") return false;
+  // An unhydrated path still carries a route placeholder the editor can't
+  // resolve to a real page. Merchants author paths in either convention:
+  //   - Next bracket:  /products/[handle], /blog/[...slug]
+  //   - colon style:   /products/:handle
+  // A concrete preview path (e.g. /products/natural-baby-shampoo-200ml) has
+  // neither. `:[A-Za-z]` (not a bare `:`) so a stray "://" can't false-positive.
+  return /\[[^\]]+\]/.test(path) || /:[A-Za-z]/.test(path);
 }
 
 export function buildPreviewUrl(

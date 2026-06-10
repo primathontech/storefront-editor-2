@@ -53,7 +53,10 @@ export const TemplateSwitchDropdown: React.FC<TemplateSwitchDropdownProps> = ({
   };
 
   const handleSelectChange = (nextTemplateId: string) => {
-    if (!nextTemplateId) return;
+    // Re-selecting the active template would clear template-scoped state
+    // without triggering a reload (the editor only reloads on id change),
+    // leaving pageConfig null and crashing BuilderToolbar. No-op instead.
+    if (!nextTemplateId || nextTemplateId === currentTemplate?.id) return;
     const next = findTemplate(nextTemplateId);
     if (next) onSwitchTemplate(next as ThemeStructureTemplate);
   };
