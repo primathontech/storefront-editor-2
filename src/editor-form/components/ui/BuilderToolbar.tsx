@@ -153,6 +153,10 @@ export default function BuilderToolbar() {
     );
   }
 
+  // Defensive: pageConfig can be momentarily null while template-scoped
+  // state is being (re)loaded. Render nothing rather than dereferencing it.
+  if (!pageConfig) return null;
+
   return (
     <>
       <SidebarScrollArea className={styles["sections-scroll"]}>
