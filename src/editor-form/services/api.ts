@@ -190,7 +190,7 @@ export interface ThemeStructure {
 }
 
 const editorBe = ky.create({
-  prefix: import.meta.env.VITE_EDITOR_API_URL || "http://localhost:3000",
+  prefix: "https://visual-editor-be.primathontech.co.in",
   cache: "no-store",
   retry: 0,
   hooks: {
