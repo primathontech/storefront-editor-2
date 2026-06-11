@@ -32,12 +32,129 @@
  *     the storefront origin while the BE endpoint surface is unbuilt.
  */
 
-import ky from "ky";
+import ky, { HTTPError } from "ky";
 import { useAuthStore } from "../../stores/authStore";
 
 /** Standard `{ data: T }` envelope returned by visual-editor-be. */
 interface ApiEnvelope<T> {
   data?: T;
+}
+
+// ---- Code editor (`/source/*`) contract types — plan §9 -----------------
+
+export type FileNode = {
+  path: string;
+  name: string;
+  type: "file" | "dir";
+  children?: FileNode[];
+  isOverridden?: boolean;
+};
+
+export type BuildStatus =
+  | { kind: "queued" }
+  | { kind: "building"; startedAt: number }
+  | { kind: "ready"; previewUrl: string; finishedAt: number }
+  | { kind: "published"; prodUrl: string; finishedAt: number }
+  | { kind: "failed"; error: string; finishedAt: number };
+
+export type SourceValidationIssue = {
+  line?: number;
+  column?: number;
+  message: string;
+};
+
+export type SourceErrorCode =
+  | "forbidden" // 403 — path allowlist violation
+  | "stale" // 409 { error: "stale" } — optimistic-lock conflict
+  | "preview_required" // 409 { error: "preview_required" } — publish gate
+  | "too_large" // 413
+  | "validation" // 422 — body has errors: [{ line?, column?, message }]
+  | "unknown";
+
+/**
+ * Typed error for `/source/*` failures so the codeEditorSession machine
+ * can branch on `code` instead of sniffing HTTP statuses.
+ */
+export class SourceApiError extends Error {
+  code: SourceErrorCode;
+  status: number;
+  currentVersion?: string;
+  issues?: SourceValidationIssue[];
+
+  constructor(args: {
+    code: SourceErrorCode;
+    status: number;
+    message: string;
+    currentVersion?: string;
+    issues?: SourceValidationIssue[];
+  }) {
+    super(args.message);
+    this.name = "SourceApiError";
+    this.code = args.code;
+    this.status = args.status;
+    this.currentVersion = args.currentVersion;
+    this.issues = args.issues;
+  }
+}
+
+/**
+ * Map an HTTPError from a `/source/*` call onto SourceApiError per the
+ * locked contract. Non-HTTP errors (network, abort) pass through.
+ */
+async function rethrowSourceError(err: unknown): Promise<never> {
+  if (!(err instanceof HTTPError)) throw err;
+  const status = err.response.status;
+  let body: {
+    error?: string;
+    currentVersion?: string;
+    errors?: SourceValidationIssue[];
+  } = {};
+  try {
+    body = await err.response.clone().json();
+  } catch {
+    // Non-JSON error body — fall through with empty shape.
+  }
+  switch (status) {
+    case 403:
+      throw new SourceApiError({
+        code: "forbidden",
+        status,
+        message: "This file isn't editable.",
+      });
+    case 409:
+      if (body.error === "preview_required") {
+        throw new SourceApiError({
+          code: "preview_required",
+          status,
+          message: "Run Build Preview first.",
+        });
+      }
+      throw new SourceApiError({
+        code: "stale",
+        status,
+        currentVersion: body.currentVersion,
+        message: "File changed elsewhere — reload file.",
+      });
+    case 413:
+      throw new SourceApiError({
+        code: "too_large",
+        status,
+        message: "File is too large to save.",
+      });
+    case 422:
+      throw new SourceApiError({
+        code: "validation",
+        status,
+        issues: body.errors ?? [],
+        message: "Validation failed.",
+      });
+    default:
+      throw new SourceApiError({
+        code: "unknown",
+        status,
+        message: `Request failed (${status}).`,
+      });
+  }
 }
 
 /**
@@ -268,6 +385,127 @@ export class EditorAPI {
         savedAt: new Date().toISOString(),
       }
     );
+  }
+
+  // -- Code editor source endpoints (`/source/*`) -------------------------
+  //
+  // Locked contract (code_editor_plan.md §7.1 / §9). All enveloped as
+  // `{ data: ... }`; failures rethrown as SourceApiError so the
+  // codeEditorSession machine branches on `code`, not HTTP status.
+
+  static async getSourceTree(themeId: string): Promise<{ tree: FileNode[] }> {
+    try {
+      const json = await editorBe
+        .get(`api/v1/themes/${themeId}/source/tree`)
+        .json<ApiEnvelope<{ tree: FileNode[] }>>();
+      return { tree: json?.data?.tree ?? [] };
+    } catch (err) {
+      return rethrowSourceError(err);
+    }
+  }
+
+  static async getSourceFile(
+    themeId: string,
+    path: string,
+  ): Promise<{ content: string; version: string; isOverride: boolean }> {
+    try {
+      const json = await editorBe
+        .get(`api/v1/themes/${themeId}/source/file`, {
+          searchParams: { path },
+        })
+        .json<
+          ApiEnvelope<{ content: string; version: string; isOverride: boolean }>
+        >();
+      const data = json?.data;
+      if (!data) throw new Error("Source file response missing data");
+      return data;
+    } catch (err) {
+      return rethrowSourceError(err);
+    }
+  }
+
+  static async saveSourceFile(
+    themeId: string,
+    path: string,
+    content: string,
+    version: string,
+  ): Promise<{ version: string }> {
+    try {
+      const json = await editorBe
+        .put(`api/v1/themes/${themeId}/source/file`, {
+          json: { path, content, version },
+        })
+        .json<ApiEnvelope<{ version: string }>>();
+      const data = json?.data;
+      if (!data?.version) throw new Error("Save response missing data.version");
+      return data;
+    } catch (err) {
+      return rethrowSourceError(err);
+    }
+  }
+
+  static async revertSourceFile(
+    themeId: string,
+    path: string,
+  ): Promise<{ reverted: boolean }> {
+    try {
+      const json = await editorBe
+        .delete(`api/v1/themes/${themeId}/source/file`, {
+          searchParams: { path },
+        })
+        .json<ApiEnvelope<{ reverted: boolean }>>();
+      return { reverted: json?.data?.reverted ?? false };
+    } catch (err) {
+      return rethrowSourceError(err);
+    }
+  }
+
+  static async buildSourcePreview(
+    themeId: string,
+  ): Promise<{ buildId: string; commitSha: string }> {
+    try {
+      const json = await editorBe
+        .post(`api/v1/themes/${themeId}/source/build-preview`)
+        .json<ApiEnvelope<{ buildId: string; commitSha: string }>>();
+      const data = json?.data;
+      if (!data?.buildId) {
+        throw new Error("Build-preview response missing data.buildId");
+      }
+      return data;
+    } catch (err) {
+      return rethrowSourceError(err);
+    }
+  }
+
+  static async publishSource(themeId: string): Promise<{ buildId: string }> {
+    try {
+      const json = await editorBe
+        .post(`api/v1/themes/${themeId}/source/publish`)
+        .json<ApiEnvelope<{ buildId: string }>>();
+      const data = json?.data;
+      if (!data?.buildId) {
+        throw new Error("Publish response missing data.buildId");
+      }
+      return data;
+    } catch (err) {
+      return rethrowSourceError(err);
+    }
+  }
+
+  static async getSourceBuildStatus(
+    themeId: string,
+    buildId: string,
+  ): Promise<BuildStatus> {
+    try {
+      const json = await editorBe
+        .get(`api/v1/themes/${themeId}/source/builds/${buildId}`)
+        .json<ApiEnvelope<BuildStatus>>();
+      const data = json?.data;
+      if (!data?.kind) throw new Error("Build status response missing data");
+      return data;
+    } catch (err) {
+      return rethrowSourceError(err);
+    }
   }
 
   // -- Auth / data-source / AI proxies (storefront-hosted today) ----------

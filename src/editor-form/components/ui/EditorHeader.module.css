@@ -103,3 +103,33 @@
   color: #999999;
   box-shadow: none;
 }
+
+/* Visual/Code surface toggle — same visual language as .device-group
+   buttons, but text-labelled so width is content-driven. */
+.view-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  height: 28px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.view-toggle-btn.view-toggle-btn-active {
+  background: #ffffff;
+  color: #333333;
+  box-shadow: 0 0 10px rgba(16, 24, 40, 0.05);
+}
+
+.view-toggle-btn.view-toggle-btn-inactive {
+  background: transparent;
+  color: #999999;
+  box-shadow: none;
+}
