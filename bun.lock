@@ -9,7 +9,7 @@
         "@dnd-kit/sortable": "^7.0.2",
         "@dnd-kit/utilities": "^3.2.2",
         "@monaco-editor/react": "^4.6.0",
-        "@shopkit/editor-bridge": "^0.3.0",
+        "@shopkit/editor-bridge": "^0.4.0",
         "@shopkit/i18n": "^0.1.4",
         "@tailwindcss/vite": "^4.2.4",
         "@xstate/react": "^6.1.0",
@@ -293,7 +293,7 @@
 
     "@shopkit/data-layer": ["@shopkit/data-layer@1.2.0", "", { "dependencies": { "@shopify/hydrogen-react": "^2025.5.0" }, "peerDependencies": { "react": ">=16.8.0", "react-dom": ">=16.8.0" }, "optionalPeers": ["react", "react-dom"] }, "sha512-j/YBGLEeNj7q656j1NHKtejwIE7fvW43DzmK47rrsAJBl3N4+kntmVInfqyIHWN7bvws6UJ4aKGaLpYy/6rELg=="],
 
-    "@shopkit/editor-bridge": ["@shopkit/editor-bridge@0.3.0", "", { "dependencies": { "zustand": "^5.0.6" }, "peerDependencies": { "@shopkit/builder": "*", "@shopkit/i18n": "*", "next": ">=14.0.0", "react": "^18.0.0", "react-dom": "^18.0.0" }, "optionalPeers": ["@shopkit/i18n"], "bin": { "shopkit-editor-bridge-migrate": "dist/bin/migrate-theme.js" } }, "sha512-vUgsjmvU/Fz+6NnHtoc3ZSAqQ6zJcDccCzchx5Em/aVCjHcZpaHJPlGrIGPYXg63MUhNj1g7I9yyrVQ9L3x3TQ=="],
+    "@shopkit/editor-bridge": ["@shopkit/editor-bridge@0.4.0", "", { "dependencies": { "zustand": "^5.0.6" }, "peerDependencies": { "@shopkit/builder": "*", "@shopkit/i18n": "*", "next": ">=14.0.0", "react": "^18.0.0", "react-dom": "^18.0.0" }, "optionalPeers": ["@shopkit/i18n"], "bin": { "shopkit-editor-bridge-migrate": "dist/bin/migrate-theme.js" } }, "sha512-zt2+DJBaGl2qP+CLlO5jPUlqFUNSwndAZw3SHI1Tj1eFC2w1xmytQ9TBF5Li85lotNP39tLyAZVuCNtQ1x/FYw=="],
 
     "@shopkit/i18n": ["@shopkit/i18n@0.1.4", "", { "peerDependencies": { "next": ">=15.5.18", "next-intl": "^4.0.0", "react": "^18.0.0" } }, "sha512-z5DUs8ItQj6oeLc1E4pmcJSUXkICHb0gHh7vpfO2V99Oa5LWW2zZGgyRBZtw8R3m6MQpk2/gC6t1Soka01zXNA=="],
 

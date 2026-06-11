@@ -19,6 +19,9 @@ const urlParams = new URLSearchParams(window.location.search);
 const initialInput: Input = {
   mid: urlParams.get("mid"),
   token: urlParams.get("token"),
+  // `self !== top` = we're in an iframe (the GK page-app embed). Read at the
+  // React layer and passed into the machine Input; the guard stays pure.
+  isEmbedded: window.self !== window.top,
 };
 
 const providedAppBootMachine = appBootMachine.provide({
@@ -44,8 +47,15 @@ const providedAppBootMachine = appBootMachine.provide({
     clearSession: () => useAuthStore.getState().clear(),
   },
   guards: {
-    hasCredentials: ({ context }) =>
-      !!context.input.mid && !!context.input.token,
+    // Boot requires `mid`, then either a GK-embedded iframe
+    // (window.self !== window.top) or a dev/QA build (theme devs, top-level).
+    // Token is intentionally NOT consulted: the editor's API calls still send
+    // the bearer when a token is present, but it never gates boot. The real
+    // "only GK may embed" restriction is the prod CSP frame-ancestors header.
+    canBoot: ({ context }) =>
+      !!context.input.mid &&
+      (import.meta.env.VITE_ALLOW_PREVIEW_ORIGIN_OVERRIDE === "true" ||
+        context.input.isEmbedded),
     isAuthError: ({ event }) =>
       (event as AnyEventObject & { error?: unknown }).error instanceof
       AuthError,
@@ -112,7 +122,7 @@ const App = () => {
 
   return (
     <>
-      <Toaster position="bottom-right" />
+      <Toaster position="top-center" />
       {screen ? <FullPageMessage {...screen} /> : <ThemeSession />}
     </>
   );

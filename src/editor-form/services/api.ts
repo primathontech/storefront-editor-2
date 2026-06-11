@@ -38,6 +38,7 @@ import { useAuthStore } from "../../stores/authStore";
 /** Standard `{ data: T }` envelope returned by visual-editor-be. */
 interface ApiEnvelope<T> {
   data?: T;
+  message?: string;
 }
 
 // ---- Code editor (`/source/*`) contract types — plan §9 -----------------
@@ -189,7 +190,7 @@ export interface ThemeStructure {
 }
 
 const editorBe = ky.create({
-  prefix: import.meta.env.VITE_EDITOR_API_URL || "http://localhost:3000",
+  prefix: "https://visual-editor-be-v2.primathontech.co.in",
   cache: "no-store",
   retry: 0,
   hooks: {
@@ -349,7 +350,12 @@ export class EditorAPI {
       sections: unknown[];
       dataSources: Record<string, unknown>;
     },
-  ): Promise<{ templateId: string; version: string; savedAt: string }> {
+  ): Promise<{
+    templateId: string;
+    version: string;
+    savedAt: string;
+    message?: string;
+  }> {
     const json = await editorBe
       .put(`api/v1/themes/${themeId}/templates/${templateId}`, {
         json: templateData,
@@ -361,7 +367,7 @@ export class EditorAPI {
     if (!result) {
       throw new Error("Save template response missing data");
     }
-    return result;
+    return { ...result, message: json?.message };
   }
 
   static async saveTranslation(

@@ -6,6 +6,7 @@ import React, { useCallback, useMemo } from "react";
 import { useRightSidebarWidth } from "../../context/RightSidebarWidthContext";
 import { useTemplateStore } from "../../../stores/templateStore";
 import { useThemeStore } from "../../../stores/themeStore";
+import { focusSection } from "../../preview-bridge";
 import { convertSchemaToFormSchema } from "../../utils/schema-converter";
 import {
   DesignSidebar,
@@ -150,6 +151,9 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     setShowSettingsDrawer(false);
     setSelectedSection(null);
     setSelectedWidget(null);
+    // Clear the iframe's selection too, so re-clicking the same widget
+    // re-fires `select` (the iframe dedupes against its own selectedEl).
+    focusSection(null);
   }, [setShowSettingsDrawer, setSelectedSection, setSelectedWidget]);
 
   const getTitle = () => {
