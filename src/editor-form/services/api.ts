@@ -19,10 +19,9 @@
  *   POST /editor/api/merchant-validation               — auth check
  *   POST /editor/api/data-source-options               — dropdown options
  *
- * Direct browser calls (key in VITE_ env, exposed in bundle) — temporary
- * until visual-editor-be has its own proxy:
- *   POST https://api.openai.com/v1/audio/transcriptions  — voice transcription
- *   POST https://api.anthropic.com/v1/messages           — AI generation
+ * AI proxies (visual-editor-be — provider keys injected server-side, OFCE-48):
+ *   POST /api/v1/ai/generate     — Anthropic Messages (forwards requestBody)
+ *   POST /api/v1/ai/transcribe   — OpenAI Whisper (multipart audio)
  *
  * HTTP via ky:
  *   - Throws on non-2xx (HTTPError) — no manual `!response.ok` plumbing.
@@ -344,76 +343,32 @@ export class EditorAPI {
   }
 
   /**
-   * OpenAI Whisper transcription — direct browser call.
-   *
-   * TODO(OFCE-48 security): VITE_OPENAI_API_KEY is bundled into the
-   * editor JS and visible to anyone who opens DevTools. Move behind a
-   * visual-editor-be proxy — `POST /api/v1/ai/transcribe` injects the
-   * key server-side and forwards the multipart body. Frontend swaps the
-   * `api.openai.com` URL for `editorBe.post('api/v1/ai/transcribe', ...)`
-   * and drops the Authorization header (existing bearer flow covers it).
+   * Voice → text via the editor backend's Whisper proxy
+   * (`POST /api/v1/ai/transcribe`, OFCE-48). The OpenAI key is injected
+   * server-side; the existing bearer flow on `editorBe` covers auth. BE adds
+   * model + language — we send only the audio file. `timeout: false` because
+   * transcription can outrun ky's 10s default.
    */
   static async transcribeAudio(audioBlob: Blob): Promise<string> {
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error("VITE_OPENAI_API_KEY is not configured");
-    }
     const form = new FormData();
     form.append("file", audioBlob, "voice.webm");
-    form.append("model", "whisper-1");
-    // Force transcription language to English to keep behavior predictable
-    form.append("language", "en");
-    const response = await fetch(
-      "https://api.openai.com/v1/audio/transcriptions",
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}` },
-        body: form,
-      },
-    );
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      throw new Error(
-        `OpenAI Whisper error ${response.status}: ${errorText}`,
-      );
-    }
-    const data = (await response.json()) as { text?: string };
+    const data = await editorBe
+      .post("api/v1/ai/transcribe", { body: form, timeout: false })
+      .json<{ text?: string }>();
     return data?.text ?? "";
   }
 
   /**
-   * Anthropic Messages API — direct browser call.
-   *
-   * TODO(OFCE-48 security): VITE_ANTHROPIC_API_KEY is bundled into the
-   * editor JS and visible to anyone who opens DevTools — and the
-   * `anthropic-dangerous-direct-browser-access` opt-in advertises that
-   * we know it. Move behind a visual-editor-be proxy —
-   * `POST /api/v1/ai/generate` injects the key server-side, forwards the
-   * JSON body, drops the dangerous-direct-browser header.
+   * AI generation via the editor backend's Anthropic proxy
+   * (`POST /api/v1/ai/generate`, OFCE-48). The Anthropic key + version/beta
+   * headers are injected server-side; BE forwards `requestBody` verbatim and
+   * relays the response unchanged, so callers still read `content[0].text`.
+   * `timeout: false` because generation can outrun ky's 10s default.
    */
   static async anthropicMessages(requestBody: unknown): Promise<unknown> {
-    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      throw new Error("VITE_ANTHROPIC_API_KEY is not configured");
-    }
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-beta": "structured-outputs-2025-11-13",
-        "anthropic-dangerous-direct-browser-access": "true",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      throw new Error(
-        `Anthropic API error ${response.status}: ${errorText}`,
-      );
-    }
-    return response.json();
+    return await editorBe
+      .post("api/v1/ai/generate", { json: { requestBody }, timeout: false })
+      .json();
   }
 }
 
