@@ -9,6 +9,7 @@ import { PreviewIcon } from "./icons/PreviewIcon";
 import { TemplateSwitchDropdown } from "./TemplateSwitchDropdown";
 import type { ThemeStructureTemplate } from "../../services/api";
 import { useThemeStore } from "../../../stores/themeStore";
+import { useEditorUiStore, type View } from "../../../stores/editorUiStore";
 
 export type Device = "desktop" | "mobile" | "tablet" | "fullscreen";
 export type Mode = "edit" | "preview";
@@ -45,6 +46,11 @@ const SAVE_LABEL: Record<SaveStatus, string> = {
   failed: "Retry save",
 };
 
+const VIEWS: ReadonlyArray<{ id: View; label: string }> = [
+  { id: "visual", label: "Visual" },
+  { id: "code", label: "Code" },
+];
+
 const EditorHeader: React.FC<EditorHeaderProps> = ({
   onSwitchTemplate,
   device,
@@ -56,6 +62,12 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
   onSave,
 }) => {
   const theme = useThemeStore((s) => s.theme);
+  // Visual/Code surface toggle is editor-wide chrome — read straight
+  // from editorUiStore (like theme above) so both lanes and CodeEditor
+  // render this header without new props.
+  const view = useEditorUiStore((s) => s.view);
+  const setView = useEditorUiStore((s) => s.setView);
+  const isCodeView = view === "code";
   const isSaving = saveStatus === "validating" || saveStatus === "saving";
 
   return (
@@ -71,6 +83,32 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
       </div>
 
       <div className={styles["right-container"]}>
+        <div
+          className={styles["device-group"]}
+          role="group"
+          aria-label="Editor surface"
+        >
+          {VIEWS.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setView(id)}
+              aria-pressed={view === id}
+              title={`Switch to ${label} editor`}
+              className={`${styles["view-toggle-btn"]} ${
+                view === id
+                  ? styles["view-toggle-btn-active"]
+                  : styles["view-toggle-btn-inactive"]
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {/* Device + mode/save controls are Visual-mode chrome; Code mode
+            ships its own ActionBar, so hide them there. */}
+        {!isCodeView && (
+          <>
         <div className={styles["device-group"]}>
           {DEVICES.map(({ id, label, Icon }) => (
             <button
@@ -126,6 +164,8 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
             </Button>
           </span>
         </div>
+          </>
+        )}
       </div>
     </header>
   );

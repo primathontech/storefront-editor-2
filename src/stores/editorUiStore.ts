@@ -9,17 +9,24 @@ import { create } from "zustand";
 
 export type Device = "desktop" | "mobile" | "tablet" | "fullscreen";
 export type Mode = "edit" | "preview";
+export type View = "visual" | "code";
 
 export interface EditorUiStore {
   device: Device;
   mode: Mode;
+  // Visual builder vs. code editor surface. Mutually exclusive (locked
+  // decision #8); one surface is mounted at a time.
+  view: View;
   setDevice: (device: Device) => void;
   setMode: (mode: Mode) => void;
+  setView: (view: View) => void;
 }
 
 export const useEditorUiStore = create<EditorUiStore>((set) => ({
   device: "desktop",
   mode: "edit",
+  view: "visual",
   setDevice: (device) => set({ device }),
   setMode: (mode) => set({ mode }),
+  setView: (view) => set({ view }),
 }));
