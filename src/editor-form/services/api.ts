@@ -190,7 +190,7 @@ export interface ThemeStructure {
 }
 
 const editorBe = ky.create({
-  prefix: "https://visual-editor-be.primathontech.co.in",
+  prefix: "https://visual-editor-be-v2.primathontech.co.in",
   cache: "no-store",
   retry: 0,
   hooks: {
