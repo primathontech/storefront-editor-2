@@ -69,7 +69,11 @@ export const SidebarSectionGroup: React.FC<SidebarSectionGroupProps> = ({
   };
 
   return (
-    <div className={groupClassName} style={dragStyle}>
+    <div
+      className={groupClassName}
+      style={dragStyle}
+      data-testid={`section-${sectionId}`}
+    >
       {firstWidget && onWidgetClick && (
         <a
           href="#"

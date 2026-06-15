@@ -22,7 +22,7 @@ export const appBootMachine = setup({
     },
   },
   guards: {
-    canBoot: () => false,
+    hasCredentials: () => false,
     isAuthError: () => false,
     isNetworkError: () => false,
     isServerError: () => false,
@@ -34,9 +34,7 @@ export const appBootMachine = setup({
   states: {
     booting: {
       always: [
-        // Boot when GK-embedded (iframe) or a dev/QA build. Token is not
-        // consulted here — see `canBoot` in App.tsx.
-        { guard: "canBoot", target: "authenticating" },
+        { guard: "hasCredentials", target: "authenticating" },
         { target: "unauthenticated.missingToken" },
       ],
     },

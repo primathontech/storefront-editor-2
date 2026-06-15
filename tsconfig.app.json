@@ -21,5 +21,9 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  /* Tests are type-checked + run by vitest (esbuild), not tsc. Excluding
+     them keeps `tsc -b` (build / typecheck) scoped to shippable source —
+     matches the per-package convention (see TESTING.md). */
+  "exclude": ["src/__tests__"]
 }
