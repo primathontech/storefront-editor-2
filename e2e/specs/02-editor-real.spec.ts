@@ -25,6 +25,10 @@ import {
   realEnv,
   waitForUpstream,
 } from "../support/real-test";
+// Same predicate the dropdown uses to gate unhydrated templates — imported
+// here as the oracle so the test asserts the UI reflects the BE's real path
+// shape, rather than re-deriving (and drifting from) the rule. See case 12.
+import { isUnhydratedPath } from "../../src/editor-form/utils/preview-route";
 
 test.describe.configure({ mode: "serial" });
 
@@ -87,60 +91,93 @@ test.describe("editor real-platform — cases 11-20", () => {
   });
 
   // ──────────────────────────────────────────────────────────────────────
-  // 12. (line 35) Verify the "Collection (Default) — set sample params"
-  //     item behaves correctly when sample params are required vs not set.
+  // 12. (line 35) Verify the "— set sample params" gating matches each
+  //     template's REAL routeContext.path.
+  //
+  //   The dropdown appends " — set sample params" and disables an option
+  //   exactly when its path is unhydrated — i.e. still carries a route
+  //   placeholder (`/products/:handle`, `/blog/[slug]`) the editor can't
+  //   preview. A concrete path (`/collections/bestsellers`) or no path is
+  //   left enabled and unsuffixed. See isUnhydratedPath +
+  //   TemplateSwitchDropdown.tsx.
   //
   //   Logic:
   //     1. Boot the editor → real dawn theme is fetched.
-  //     2. Open the dropdown. The Collection template's routeContext.path
-  //        is `/collections/:handle` (placeholder) — an unhydrated path.
-  //        `isUnhydratedPath` in src/editor-form/utils/preview-route.ts
-  //        triggers two visible effects in the option:
-  //          • label gets " — set sample params" appended
-  //          • the option button is `disabled`
-  //     3. Assert both effects.
-  //     4. Assert a comparison sibling — Products (concrete sample path,
-  //        `/products/natural-baby-shampoo-200ml`) — does NOT carry the
-  //        suffix and is enabled.
-  //     5. Try clicking the disabled option; the trigger must NOT change.
+  //     2. Pull the same theme structure straight from the BE so we know
+  //        each template's authored path. (The QA backend's sample paths
+  //        change over time — e.g. Collection has been both
+  //        `/collections/:handle` and a concrete `/collections/bestsellers`
+  //        — so the case must read the live data, not hard-code a winner.)
+  //     3. For EVERY option, assert the rendered suffix + disabled state
+  //        agree with isUnhydratedPath(path).
+  //     4. If any template is unhydrated, clicking it must NOT change the
+  //        trigger (disabled options are inert).
   //
   //   Why real-only: this is data-shape behavior. The mock would have to
   //   reproduce the BE's exact route patterns; cheaper and more honest to
-  //   exercise the real path string.
+  //   exercise the real path strings the merchant authored.
   // ──────────────────────────────────────────────────────────────────────
-  test("12. 'Collection — set sample params' is labelled and disabled", async ({
+  test("12. dropdown 'set sample params' gating matches each template's real path", async ({
     editor,
   }) => {
     await editor.open();
+
+    // Source of truth: the live theme structure (template → authored path).
+    const res = await editor.page.request.get(`${BE_URL}/api/v1/themes/dawn`, {
+      headers: { Authorization: `Bearer ${realEnv.token}` },
+    });
+    expect(res.ok(), "BE returns the dawn theme structure").toBeTruthy();
+    const json = await res.json();
+    const data = json?.data ?? json;
+    const structure =
+      data?.templateStructure ?? data?.theme?.templateStructure ?? [];
+    const templates: Array<{ name: string; path?: string }> = [];
+    for (const group of structure) {
+      for (const t of group?.templates ?? []) {
+        templates.push({ name: t.name ?? t.id, path: t.routeContext?.path });
+      }
+    }
+    expect(templates.length, "theme exposes at least one template").toBeGreaterThan(0);
+
     await editor.openDropdown();
 
-    const collection = editor.listbox.getByRole("option", {
-      name: "Collection (Default) — set sample params",
-      exact: true,
-    });
-    await expect(
-      collection,
-      "Collection option carries the sample-params suffix",
-    ).toBeVisible();
-    await expect(
-      collection,
-      "Collection option is disabled when path is unhydrated",
-    ).toBeDisabled();
+    // Every option's UI state must mirror its real path shape.
+    for (const t of templates) {
+      const unhydrated = isUnhydratedPath(t.path);
+      const label = unhydrated ? `${t.name} — set sample params` : t.name;
+      const option = editor.listbox.getByRole("option", {
+        name: label,
+        exact: true,
+      });
+      await expect(option, `option "${label}" is rendered`).toBeVisible();
+      if (unhydrated) {
+        await expect(
+          option,
+          `"${t.name}" (path ${t.path}) is unhydrated → disabled`,
+        ).toBeDisabled();
+      } else {
+        await expect(
+          option,
+          `"${t.name}" (path ${t.path ?? "—"}) is concrete → enabled`,
+        ).toBeEnabled();
+      }
+    }
 
-    const products = editor.listbox.getByRole("option", {
-      name: "Products (Default)",
-      exact: true,
-    });
-    await expect(
-      products,
-      "Products option (concrete path) is unsuffixed and enabled",
-    ).toBeEnabled();
-
-    // Clicking a disabled option must not change the current selection.
-    const labelBefore = (await editor.templateTrigger.textContent())?.trim();
-    await collection.click({ force: true }).catch(() => {});
-    const labelAfter = (await editor.templateTrigger.textContent())?.trim();
-    expect(labelAfter).toBe(labelBefore);
+    // A disabled (unhydrated) option, if the live theme has one, must be
+    // inert — clicking it leaves the current selection untouched.
+    const firstUnhydrated = templates.find((t) => isUnhydratedPath(t.path));
+    if (firstUnhydrated) {
+      const labelBefore = (await editor.templateTrigger.textContent())?.trim();
+      await editor.listbox
+        .getByRole("option", {
+          name: `${firstUnhydrated.name} — set sample params`,
+          exact: true,
+        })
+        .click({ force: true })
+        .catch(() => {});
+      const labelAfter = (await editor.templateTrigger.textContent())?.trim();
+      expect(labelAfter).toBe(labelBefore);
+    }
   });
 
   // ──────────────────────────────────────────────────────────────────────
