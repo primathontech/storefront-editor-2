@@ -20,9 +20,64 @@ import {
 } from "../preview-bridge";
 import { EditorAPI } from "../services/api";
 import { templateSessionMachine } from "../../machines/templateSession";
-import type { ThemeStructureTemplate } from "../services/api";
+import type { ThemeStructure, ThemeStructureTemplate } from "../services/api";
 import { RESPONSIVE_FRAME_STYLE } from "../utils/preview-frame-style";
 import { buildPreviewUrl } from "../utils/preview-route";
+
+// Find the header/footer template IDs from the theme structure. Chrome
+// templates are tagged by routeContext.type ("header"/"footer").
+function findChromeTemplateIds(theme: ThemeStructure | null): {
+  header?: string;
+  footer?: string;
+} {
+  const ids: { header?: string; footer?: string } = {};
+  for (const group of theme?.templateStructure ?? []) {
+    for (const t of group.templates ?? []) {
+      const tag = t.routeContext?.type ?? t.routeContext?.templateName;
+      if (tag === "header" && t.id) ids.header = t.id;
+      else if (tag === "footer" && t.id) ids.footer = t.id;
+    }
+  }
+  return ids;
+}
+
+// Chrome (header/footer) sections are spliced into pageConfig.sections so the
+// existing sidebar / settings / edit machinery handles them with no special-
+// casing. Each carries `_chromeTemplateId` (which template it round-trips to,
+// so commitServer drops it from the page-body preview and saveTemplate routes
+// it back) and `_chromeRole` (header vs footer — the sidebar groups on this
+// instead of guessing from the template-id string, which themes may name
+// arbitrarily). Both tags are stripped before saving.
+function tagChromeSections(
+  config: any,
+  templateId: string | undefined,
+  role: "header" | "footer",
+): any[] {
+  if (!config?.sections || !templateId) return [];
+  return config.sections.map((s: any) => ({
+    ...s,
+    _chromeTemplateId: templateId,
+    _chromeRole: role,
+  }));
+}
+
+// header on top, page body in the middle, footer at the bottom — matching how
+// they render on the storefront.
+function mergeChromeIntoPage(
+  pageConfig: any,
+  header: { config: any; id?: string },
+  footer: { config: any; id?: string },
+): any {
+  if (!pageConfig) return pageConfig;
+  return {
+    ...pageConfig,
+    sections: [
+      ...tagChromeSections(header.config, header.id, "header"),
+      ...(pageConfig.sections ?? []),
+      ...tagChromeSections(footer.config, footer.id, "footer"),
+    ],
+  };
+}
 
 interface TemplateEditorProps {
   onSwitchTemplate: (template: ThemeStructureTemplate) => void;
@@ -52,16 +107,52 @@ export default function TemplateEditor({
             }
             useTemplateStore.getState().reset();
             const lang = useThemeStore.getState().language;
-            const [common, template, pageConfig] = await Promise.all([
-              EditorAPI.getTranslation(themeId, "common", lang),
-              EditorAPI.getTranslation(themeId, tmpl.id, lang),
-              EditorAPI.getTemplate(themeId, tmpl.id),
-            ]);
+            // Load shared header/footer (their own DB templates) alongside the
+            // page and splice their sections into pageConfig — see
+            // mergeChromeIntoPage. Best-effort: missing rows → page only.
+            const chrome = findChromeTemplateIds(
+              useThemeStore.getState().theme,
+            );
+            const [common, template, pageConfig, headerCfg, footerCfg] =
+              await Promise.all([
+                EditorAPI.getTranslation(themeId, "common", lang),
+                EditorAPI.getTranslation(themeId, tmpl.id, lang),
+                EditorAPI.getTemplate(themeId, tmpl.id),
+                chrome.header
+                  ? EditorAPI.getTemplate(themeId, chrome.header).catch(
+                      () => null,
+                    )
+                  : Promise.resolve(null),
+                chrome.footer
+                  ? EditorAPI.getTemplate(themeId, chrome.footer).catch(
+                      () => null,
+                    )
+                  : Promise.resolve(null),
+              ]);
+            const merged = mergeChromeIntoPage(
+              pageConfig,
+              { config: headerCfg, id: chrome.header },
+              { config: footerCfg, id: chrome.footer },
+            );
             const store = useTemplateStore.getState();
             store.setTranslationData({ common, template });
-            store.setPageConfig(pageConfig);
+            store.setPageConfig(merged);
+            // Snapshot the loaded chrome sections so saveTemplate only
+            // rewrites a header/footer template the user actually edited.
+            const chromeSections = (cfg: unknown): unknown[] =>
+              (cfg as { sections?: unknown[] } | null)?.sections ?? [];
+            const chromeBaseline: Record<string, string> = {};
+            if (chrome.header)
+              chromeBaseline[chrome.header] = JSON.stringify(
+                chromeSections(headerCfg),
+              );
+            if (chrome.footer)
+              chromeBaseline[chrome.footer] = JSON.stringify(
+                chromeSections(footerCfg),
+              );
+            store.setChromeBaseline(chromeBaseline);
             const sectionIds: string[] =
-              (pageConfig as { sections?: { id: string }[] } | null)
+              (merged as { sections?: { id: string }[] } | null)
                 ?.sections?.map((s) => s.id) ?? [];
             store.setExpandedSections(new Set(sectionIds));
           }),
@@ -78,6 +169,35 @@ export default function TemplateEditor({
               throw new Error("Missing themeId or currentTemplate.id");
             }
             if (!pc) throw new Error("No pageConfig to save");
+
+            // Split the merged sections: page sections save to the current
+            // template; chrome sections save back to their own (header/footer)
+            // templates. The `_chromeTemplateId` tag is stripped before saving.
+            const pageSections: any[] = [];
+            const chromeByTemplate = new Map<string, any[]>();
+            for (const section of (pc.sections ?? []) as any[]) {
+              const chromeId: string | undefined = section._chromeTemplateId;
+              if (chromeId) {
+                const clean = { ...section };
+                delete clean._chromeTemplateId;
+                delete clean._chromeRole;
+                chromeByTemplate.set(chromeId, [
+                  ...(chromeByTemplate.get(chromeId) ?? []),
+                  clean,
+                ]);
+              } else {
+                pageSections.push(section);
+              }
+            }
+
+            const theme = useThemeStore.getState().theme;
+            const findEntry = (
+              id: string,
+            ): ThemeStructureTemplate | undefined =>
+              theme?.templateStructure
+                ?.flatMap((g) => g.templates ?? [])
+                .find((t) => t.id === id);
+
             const res = await EditorAPI.saveTemplate(themeId, tmpl.id, {
               metadata: {
                 id: tmpl.id,
@@ -88,9 +208,36 @@ export default function TemplateEditor({
                 routeContext: tmpl.routeContext,
               },
               layout: pc.layout,
-              sections: pc.sections,
+              sections: pageSections,
               dataSources: pc.dataSources,
             });
+
+            // Persist only the chrome (header/footer) templates the user
+            // actually edited — compare against the loaded baseline so a
+            // page-only save leaves untouched header/footer rows alone.
+            const baseline = useTemplateStore.getState().chromeBaseline;
+            const nextBaseline = { ...baseline };
+            for (const [chromeId, sections] of chromeByTemplate) {
+              const serialized = JSON.stringify(sections);
+              if (serialized === baseline[chromeId]) continue;
+              const entry = findEntry(chromeId);
+              await EditorAPI.saveTemplate(themeId, chromeId, {
+                metadata: {
+                  id: chromeId,
+                  name: entry?.name || chromeId,
+                  brand: themeId,
+                  type: entry?.routeContext?.type || "header",
+                  version: "1.0.0",
+                  routeContext: entry?.routeContext,
+                },
+                sections,
+                dataSources: {},
+              });
+              // Advance the baseline so a later page-only save doesn't
+              // re-persist this now-saved chrome template again.
+              nextBaseline[chromeId] = serialized;
+            }
+            useTemplateStore.getState().setChromeBaseline(nextBaseline);
             toast.success(res.message || "Template updated successfully");
           }),
 
