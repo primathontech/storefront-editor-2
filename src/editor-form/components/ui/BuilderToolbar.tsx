@@ -85,6 +85,18 @@ export default function BuilderToolbar() {
     focusSection(sectionId, widgetId);
   };
 
+  // Chrome (header/footer) groups: widgets selectable + editable, but no
+  // drag / add / remove — chrome structure is fixed (omitting the drag props
+  // and onAddSection disables those affordances).
+  const renderChromeGroup = (section: any) => (
+    <SidebarSectionGroup
+      key={section.id}
+      section={section}
+      onWidgetClick={handleWidgetSelect}
+      selectedWidgetId={selectedWidgetId}
+    />
+  );
+
   // Handler for drag end
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
@@ -157,10 +169,23 @@ export default function BuilderToolbar() {
   // state is being (re)loaded. Render nothing rather than dereferencing it.
   if (!pageConfig) return null;
 
+  // Chrome sections (tagged with their source template id) are spliced into
+  // pageConfig for editing; split them back out so the page body stays
+  // draggable/addable while header/footer render as fixed groups.
+  const allSections: any[] = pageConfig.sections ?? [];
+  const headerSections = allSections.filter(
+    (s: any) => s._chromeRole === "header",
+  );
+  const footerSections = allSections.filter(
+    (s: any) => s._chromeRole === "footer",
+  );
+  const bodySections = allSections.filter((s: any) => !s._chromeTemplateId);
+
   return (
     <>
       <SidebarScrollArea className={styles["sections-scroll"]}>
-        {pageConfig.sections.length === 0 ? (
+        {headerSections.map(renderChromeGroup)}
+        {bodySections.length === 0 ? (
           <div className={styles["empty-state"]}>
             <p className={styles["empty-state-title"]}>No sections yet</p>
             <p className={styles["empty-state-description"]}>
@@ -185,17 +210,18 @@ export default function BuilderToolbar() {
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={pageConfig.sections.map((s: any) => s.id)}
+              items={bodySections.map((s: any) => s.id)}
               strategy={verticalListSortingStrategy}
             >
-              {pageConfig.sections.map((section: any) => (
+              {bodySections.map((section: any) => (
                 <SortableSection key={section.id} section={section} />
               ))}
             </SortableContext>
           </DndContext>
         )}
+        {footerSections.map(renderChromeGroup)}
       </SidebarScrollArea>
-      {pageConfig.sections.length > 0 && (
+      {bodySections.length > 0 && (
         <div className={styles["sections-footer"]}>
           <Button
             variant="secondary"

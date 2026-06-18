@@ -32,6 +32,12 @@ export interface TemplateStore {
   // ---- Data ----
   pageConfig: any | null;
 
+  // Serialized (JSON) snapshot of each chrome (header/footer) template's
+  // sections as last loaded/saved, keyed by template id. saveTemplate
+  // compares the current chrome sections against this so a page-only edit
+  // doesn't rewrite untouched header/footer templates.
+  chromeBaseline: Record<string, string>;
+
   // ---- Translations (self-contained — no dualTranslationStore) ----
   // `language` lives in themeStore (theme-level per Lakshya contract).
   // Translation slices below are written by fetchTemplateData and
@@ -57,6 +63,7 @@ export interface TemplateStore {
 
   // ---- Setters (write-only state) ----
   setPageConfig: (config: any) => void;
+  setChromeBaseline: (baseline: Record<string, string>) => void;
   setSelectedSection: (id: string | null) => void;
   setSelectedWidget: (id: string | null) => void;
   toggleSectionExpansion: (sectionId: string) => void;
@@ -131,6 +138,7 @@ export const useTemplateStore = create<TemplateStore>()(
   devtools(
     (set, get) => ({
       pageConfig: null,
+      chromeBaseline: {},
 
       commonTranslations: {},
       templateTranslations: {},
@@ -146,6 +154,7 @@ export const useTemplateStore = create<TemplateStore>()(
 
       // -- Setters --
       setPageConfig: (config) => set({ pageConfig: config }),
+      setChromeBaseline: (baseline) => set({ chromeBaseline: baseline }),
 
       setSelectedSection: (id) =>
         set({
@@ -193,6 +202,7 @@ export const useTemplateStore = create<TemplateStore>()(
       reset: () =>
         set({
           pageConfig: null,
+          chromeBaseline: {},
           selectedSectionId: null,
           selectedWidgetId: null,
           expandedSections: new Set<string>(),
