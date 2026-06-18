@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useMachine } from "@xstate/react";
 import { fromCallback, fromPromise } from "xstate";
 import { toast } from "react-hot-toast";
@@ -7,6 +7,7 @@ import { PreviewMessage } from "../../components/PreviewMessage";
 import { SidebarSkeleton } from "../../components/SidebarSkeleton";
 import BuilderToolbar from "../components/ui/BuilderToolbar";
 import EditorHeader from "../components/ui/EditorHeader";
+import { PreviewLinkModal } from "../components/ui/PreviewLinkModal";
 import { SettingsSidebar } from "../components/ui/SettingsSidebar";
 import { useAuthStore } from "../../stores/authStore";
 import { useThemeStore } from "../../stores/themeStore";
@@ -20,13 +21,22 @@ import {
 } from "../preview-bridge";
 import { EditorAPI } from "../services/api";
 import { templateSessionMachine } from "../../machines/templateSession";
-import type { ThemeStructureTemplate } from "../services/api";
+import type { PreviewEnv, ThemeStructureTemplate } from "../services/api";
 import { RESPONSIVE_FRAME_STYLE } from "../utils/preview-frame-style";
 import { buildPreviewUrl } from "../utils/preview-route";
 
 interface TemplateEditorProps {
   onSwitchTemplate: (template: ThemeStructureTemplate) => void;
 }
+
+// Environment tier the preview snapshot renders against (preview doc §1:
+// local | sandbox | production). There's no env selector yet (doc §5.2 is a
+// later pass), so default to production and drop to local only on the dev/QA
+// editor build — the same gate the preview-origin override uses.
+const PREVIEW_ENV: PreviewEnv =
+  import.meta.env.VITE_ALLOW_PREVIEW_ORIGIN_OVERRIDE === "true"
+    ? "local"
+    : "production";
 
 export default function TemplateEditor({
   onSwitchTemplate,
@@ -39,6 +49,59 @@ export default function TemplateEditor({
   const setMode = useEditorUiStore((s) => s.setMode);
   const translationService = useTemplateStore((s) => s.translationService);
   const showSettingsDrawer = useTemplateStore((s) => s.showSettingsDrawer);
+  const hasUnsavedChanges = useTemplateStore((s) => s.hasUnsavedChanges);
+  const hasUnsavedTranslations = useTemplateStore(
+    (s) => s.hasUnsavedTranslations,
+  );
+  const [creatingPreview, setCreatingPreview] = useState(false);
+  const [previewLink, setPreviewLink] = useState<{
+    url: string;
+    version: number | null;
+  } | null>(null);
+
+  // "Save and Preview": save the current (unsaved) pageConfig as the template's
+  // working DRAFT and open the shareable link. The first save mints an opaque
+  // previewId (the session); subsequent saves reuse it (new version each time).
+  // The editor resumes this draft on reload — it is NOT yet published to the
+  // live/production template (that's the Publish button). Reads from store
+  // getState() so the payload is the freshest edit.
+  const handlePreview = useCallback(async () => {
+    const themeId = useAuthStore.getState().merchant?.themeId;
+    const tmpl = useThemeStore.getState().currentTemplate;
+    const pageConfig = useTemplateStore.getState().pageConfig;
+    const language = useThemeStore.getState().language;
+    // Reuse the active session id if one exists; else the backend mints one.
+    const activePreviewId = useTemplateStore.getState().activePreviewId;
+    if (!themeId || !tmpl?.id || !pageConfig) {
+      toast.error("Can't save preview — template isn't ready yet.");
+      return;
+    }
+    setCreatingPreview(true);
+    try {
+      const { previewId, url, version } = await EditorAPI.getPreviewLink({
+        themeId,
+        templateId: tmpl.id,
+        previewId: activePreviewId ?? undefined,
+        routeContext: tmpl.routeContext,
+        env: PREVIEW_ENV,
+        language,
+        pageConfig,
+      });
+      // Bind the (possibly new) session id and clear the dirty flag so the
+      // editor reflects a saved state (it reloads this same draft next time).
+      useTemplateStore.setState({
+        hasUnsavedChanges: false,
+        activePreviewId: previewId,
+      });
+      // Surface the shareable link in a modal (open-in-tab / copy actions).
+      setPreviewLink({ url, version });
+    } catch (err) {
+      console.error("getPreviewLink failed", err);
+      toast.error("Couldn't save the preview.");
+    } finally {
+      setCreatingPreview(false);
+    }
+  }, []);
 
   const providedMachine = useMemo(
     () =>
@@ -52,14 +115,23 @@ export default function TemplateEditor({
             }
             useTemplateStore.getState().reset();
             const lang = useThemeStore.getState().language;
-            const [common, template, pageConfig] = await Promise.all([
-              EditorAPI.getTranslation(themeId, "common", lang),
-              EditorAPI.getTranslation(themeId, tmpl.id, lang),
-              EditorAPI.getTemplate(themeId, tmpl.id),
-            ]);
+            const [common, template, draft, livePageConfig] =
+              await Promise.all([
+                EditorAPI.getTranslation(themeId, "common", lang),
+                EditorAPI.getTranslation(themeId, tmpl.id, lang),
+                // Resume the active "Save and Preview" draft if one exists…
+                EditorAPI.getLatestPreview(themeId, tmpl.id),
+                // …otherwise fall back to the published/live template.
+                EditorAPI.getTemplate(themeId, tmpl.id),
+              ]);
+            const pageConfig = draft?.pageConfig ?? livePageConfig;
             const store = useTemplateStore.getState();
             store.setTranslationData({ common, template });
             store.setPageConfig(pageConfig);
+            // Re-bind the session id so further saves version the same draft.
+            if (draft) {
+              useTemplateStore.setState({ activePreviewId: draft.previewId });
+            }
             const sectionIds: string[] =
               (pageConfig as { sections?: { id: string }[] } | null)
                 ?.sections?.map((s) => s.id) ?? [];
@@ -70,6 +142,12 @@ export default function TemplateEditor({
             await useTemplateStore.getState().validateAllHtml();
           }),
 
+          // Publish: write the current pageConfig to the live/production
+          // template, then PURGE the merchant's ENTIRE preview session (every
+          // template under its single previewId). After publish there is no
+          // draft — a reload (or any preview link to the purged id) falls back
+          // to live, so preview == live, and the next edit mints a fresh
+          // previewId.
           saveTemplate: fromPromise(async () => {
             const themeId = useAuthStore.getState().merchant?.themeId;
             const tmpl = useThemeStore.getState().currentTemplate;
@@ -77,7 +155,7 @@ export default function TemplateEditor({
             if (!themeId || !tmpl?.id) {
               throw new Error("Missing themeId or currentTemplate.id");
             }
-            if (!pc) throw new Error("No pageConfig to save");
+            if (!pc) throw new Error("No pageConfig to publish");
             const res = await EditorAPI.saveTemplate(themeId, tmpl.id, {
               metadata: {
                 id: tmpl.id,
@@ -91,7 +169,19 @@ export default function TemplateEditor({
               sections: pc.sections,
               dataSources: pc.dataSources,
             });
-            toast.success(res.message || "Template updated successfully");
+            // Purge the merchant's whole preview session now that it's live.
+            // By merchant (not previewId) so it clears regardless of which
+            // template is open. Best-effort — must not fail the publish.
+            try {
+              await EditorAPI.deleteMerchantPreviews(themeId);
+            } catch (e) {
+              console.warn("Preview purge after publish failed", e);
+            }
+            useTemplateStore.setState({
+              hasUnsavedChanges: false,
+              activePreviewId: null,
+            });
+            toast.success(res.message || "Published to live successfully");
           }),
 
           saveTranslations: fromPromise(async () => {
@@ -224,6 +314,14 @@ export default function TemplateEditor({
   const saveDisabled =
     saveStatus === "validating" || saveStatus === "saving";
 
+  // Preview is only meaningful with in-progress edits to snapshot. Disable
+  // it with no unsaved changes, while a snapshot is in flight, or mid-save
+  // (a preview taken during a save would capture an ambiguous state).
+  const previewDisabled =
+    (!hasUnsavedChanges && !hasUnsavedTranslations) ||
+    creatingPreview ||
+    saveDisabled;
+
   const isCommitting = state.matches({ editing: { preview: "committing" } });
   const previewLoading = state.hasTag("previewLoading");
   const previewUrl = buildPreviewUrl(
@@ -235,6 +333,7 @@ export default function TemplateEditor({
   const isLoadError = state.matches("loadError");
 
   return (
+    <>
     <Editor
       header={
         <EditorHeader
@@ -246,6 +345,9 @@ export default function TemplateEditor({
           saveStatus={saveStatus}
           saveDisabled={saveDisabled}
           onSave={() => send({ type: "SAVE_REQUESTED" })}
+          onPreview={handlePreview}
+          previewDisabled={previewDisabled}
+          previewLoading={creatingPreview}
         />
       }
       leftSidebar={
@@ -309,6 +411,13 @@ export default function TemplateEditor({
         ) : undefined
       }
     />
+      <PreviewLinkModal
+        isOpen={!!previewLink}
+        url={previewLink?.url ?? ""}
+        version={previewLink?.version ?? null}
+        onClose={() => setPreviewLink(null)}
+      />
+    </>
   );
 }
 

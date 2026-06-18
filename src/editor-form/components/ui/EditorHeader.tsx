@@ -28,6 +28,14 @@ interface EditorHeaderProps {
   saveStatus: SaveStatus;
   saveDisabled: boolean;
   onSave: () => void;
+  // Shareable-preview action (dynamic-template lane). When `onPreview` is
+  // provided the Preview button fires it — creating a preview snapshot via
+  // the backend — instead of toggling the embedded iframe's edit/preview
+  // mode. `previewDisabled` gates it on having unsaved edits; lanes that
+  // don't pass `onPreview` keep the legacy mode toggle.
+  onPreview?: () => void;
+  previewDisabled?: boolean;
+  previewLoading?: boolean;
 }
 
 const DEVICES = [
@@ -37,12 +45,13 @@ const DEVICES = [
   { id: "fullscreen", label: "Fullscreen", Icon: HeaderStackedIcon },
 ] as const;
 
+// The primary action publishes the draft to the live (production) template.
 const SAVE_LABEL: Record<SaveStatus, string> = {
-  idle: "Save",
+  idle: "Publish",
   validating: "Validating…",
-  saving: "Saving…",
-  saved: "Saved",
-  failed: "Retry save",
+  saving: "Publishing…",
+  saved: "Published",
+  failed: "Retry publish",
 };
 
 const EditorHeader: React.FC<EditorHeaderProps> = ({
@@ -54,6 +63,9 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
   saveStatus,
   saveDisabled,
   onSave,
+  onPreview,
+  previewDisabled = false,
+  previewLoading = false,
 }) => {
   const theme = useThemeStore((s) => s.theme);
   const isSaving = saveStatus === "validating" || saveStatus === "saving";
@@ -91,22 +103,47 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
           ))}
         </div>
         <div className={styles["action-buttons-container"]}>
-          <Button
-            variant="secondary"
-            size="md"
-            leftIcon={mode === "preview" ? <EditIcon /> : <PreviewIcon />}
-            onClick={() => setMode(mode === "preview" ? "edit" : "preview")}
-            style={{ width: "122px" }}
-          >
-            {mode === "preview" ? "Edit" : "Preview"}
-          </Button>
+          {onPreview ? (
+            // span carries the hint: a native title doesn't show on a
+            // disabled <button>. Surface why Preview is off when at rest.
+            <span
+              title={
+                previewDisabled && !previewLoading
+                  ? "Make a change to save a preview"
+                  : undefined
+              }
+              style={{ display: "inline-flex" }}
+            >
+              <Button
+                variant="secondary"
+                size="md"
+                leftIcon={<PreviewIcon />}
+                onClick={onPreview}
+                disabled={previewDisabled}
+                loading={previewLoading}
+                title="Save a draft and open a shareable preview"
+              >
+                {previewLoading ? "Saving…" : "Save and Preview"}
+              </Button>
+            </span>
+          ) : (
+            <Button
+              variant="secondary"
+              size="md"
+              leftIcon={mode === "preview" ? <EditIcon /> : <PreviewIcon />}
+              onClick={() => setMode(mode === "preview" ? "edit" : "preview")}
+              style={{ width: "122px" }}
+            >
+              {mode === "preview" ? "Edit" : "Preview"}
+            </Button>
+          )}
 
           {/* span carries the hint: a native title doesn't show on a
               disabled <button>. Only set when Save is disabled at rest. */}
           <span
             title={
               saveDisabled && saveStatus === "idle"
-                ? "No changes to save"
+                ? "Nothing to publish"
                 : undefined
             }
             style={{ display: "inline-flex" }}
@@ -118,7 +155,9 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
               disabled={saveDisabled}
               loading={isSaving}
               title={
-                saveStatus === "failed" ? "Last save failed" : "Save changes"
+                saveStatus === "failed"
+                  ? "Last publish failed"
+                  : "Publish to live"
               }
               style={{ minWidth: "100px" }}
             >
