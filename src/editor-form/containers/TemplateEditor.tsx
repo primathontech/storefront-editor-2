@@ -15,15 +15,72 @@ import { useTemplateStore } from "../../stores/templateStore";
 import { useEditorUiStore } from "../../stores/editorUiStore";
 import { PROTOCOL_VERSION } from "@shopkit/editor-bridge";
 import {
+  commitClientSection,
+  commitClientWidget,
   commitServer,
   registerPreviewBridge,
   unregisterPreviewBridge,
 } from "../preview-bridge";
 import { EditorAPI } from "../services/api";
 import { templateSessionMachine } from "../../machines/templateSession";
-import type { PreviewEnv, ThemeStructureTemplate } from "../services/api";
+import type { PreviewEnv,ThemeStructure, ThemeStructureTemplate } from "../services/api";
 import { RESPONSIVE_FRAME_STYLE } from "../utils/preview-frame-style";
 import { buildPreviewUrl } from "../utils/preview-route";
+
+// Find the header/footer template IDs from the theme structure. Chrome
+// templates are tagged by routeContext.type ("header"/"footer").
+function findChromeTemplateIds(theme: ThemeStructure | null): {
+  header?: string;
+  footer?: string;
+} {
+  const ids: { header?: string; footer?: string } = {};
+  for (const group of theme?.templateStructure ?? []) {
+    for (const t of group.templates ?? []) {
+      const tag = t.routeContext?.type ?? t.routeContext?.templateName;
+      if (tag === "header" && t.id) ids.header = t.id;
+      else if (tag === "footer" && t.id) ids.footer = t.id;
+    }
+  }
+  return ids;
+}
+
+// Chrome (header/footer) sections are spliced into pageConfig.sections so the
+// existing sidebar / settings / edit machinery handles them with no special-
+// casing. Each carries `_chromeTemplateId` (which template it round-trips to,
+// so commitServer drops it from the page-body preview and saveTemplate routes
+// it back) and `_chromeRole` (header vs footer — the sidebar groups on this
+// instead of guessing from the template-id string, which themes may name
+// arbitrarily). Both tags are stripped before saving.
+function tagChromeSections(
+  config: any,
+  templateId: string | undefined,
+  role: "header" | "footer",
+): any[] {
+  if (!config?.sections || !templateId) return [];
+  return config.sections.map((s: any) => ({
+    ...s,
+    _chromeTemplateId: templateId,
+    _chromeRole: role,
+  }));
+}
+
+// header on top, page body in the middle, footer at the bottom — matching how
+// they render on the storefront.
+function mergeChromeIntoPage(
+  pageConfig: any,
+  header: { config: any; id?: string },
+  footer: { config: any; id?: string },
+): any {
+  if (!pageConfig) return pageConfig;
+  return {
+    ...pageConfig,
+    sections: [
+      ...tagChromeSections(header.config, header.id, "header"),
+      ...(pageConfig.sections ?? []),
+      ...tagChromeSections(footer.config, footer.id, "footer"),
+    ],
+  };
+}
 
 interface TemplateEditorProps {
   onSwitchTemplate: (template: ThemeStructureTemplate) => void;
@@ -53,6 +110,7 @@ export default function TemplateEditor({
   const hasUnsavedTranslations = useTemplateStore(
     (s) => s.hasUnsavedTranslations,
   );
+  const activePreviewId = useTemplateStore((s) => s.activePreviewId);
   const [creatingPreview, setCreatingPreview] = useState(false);
   const [previewLink, setPreviewLink] = useState<{
     url: string;
@@ -76,8 +134,84 @@ export default function TemplateEditor({
       toast.error("Can't save preview — template isn't ready yet.");
       return;
     }
+    // Split the merged editing config back into its real templates, mirroring
+    // saveTemplate. Chrome (header/footer) sections are spliced into pageConfig
+    // for editing (mergeChromeIntoPage) but belong to their OWN templates and
+    // are rendered separately by the storefront layout (renderChrome). The
+    // preview must store them the same way:
+    //   • page-body sections  → the current template's preview (no chrome, so
+    //     the layout's chrome isn't doubled and nothing accumulates per version)
+    //   • each chrome group    → a preview for ITS template (dawn_header_default
+    //     / dawn_footer_default) under the SAME previewId, so renderChrome
+    //     resolves the edited header/footer in preview mode.
+    const chromeConfigs = useTemplateStore.getState().chromeConfigs;
+    // Pre-resolve t:-refs in every widget's settings before saving — exactly
+    // what commitServer does for the LIVE preview. Translation-backed fields
+    // (header logo image t:common.header.logoPath, nav links/dropdowns, etc.)
+    // are edited into the DRAFT translations, which are only written live on
+    // Publish. The preview snapshot stores pageConfig, not translations, so
+    // saving raw t:-refs makes the storefront resolve them against the STALE
+    // live translations — the edited image/menu wouldn't show until publish.
+    // Resolving here bakes the current draft values into the snapshot.
+    const ts = useTemplateStore.getState().translationService;
+    const resolveSections = (sections: unknown[]): unknown[] =>
+      ts
+        ? sections.map((s) => {
+            const sec = s as {
+              widgets?: { settings?: Record<string, unknown> }[];
+            };
+            return {
+              ...sec,
+              widgets: (sec.widgets ?? []).map((w) => ({
+                ...w,
+                settings: ts.translateObject(
+                  w.settings ?? {},
+                ) as Record<string, unknown>,
+              })),
+            };
+          })
+        : sections;
+
+    const bodySections: unknown[] = [];
+    const chromeByTemplate = new Map<string, unknown[]>();
+    for (const section of (pageConfig.sections ?? []) as {
+      _chromeTemplateId?: string;
+      _chromeRole?: string;
+    }[]) {
+      const chromeId = section._chromeTemplateId;
+      if (chromeId) {
+        const clean = { ...section };
+        delete clean._chromeTemplateId;
+        delete clean._chromeRole;
+        chromeByTemplate.set(chromeId, [
+          ...(chromeByTemplate.get(chromeId) ?? []),
+          clean,
+        ]);
+      } else {
+        bodySections.push(section);
+      }
+    }
+    // pageConfig = RESOLVED (what the storefront renders); metadata.rawPageConfig
+    // = the unresolved (t:-ref) config the editor resumes from, so reload keeps
+    // the i18n model and a later Publish writes t:-refs + translations, never
+    // baked literals.
+    const bodyPageConfig = {
+      ...pageConfig,
+      sections: resolveSections(bodySections),
+    };
+    const rawBodyPageConfig = { ...pageConfig, sections: bodySections };
+
     setCreatingPreview(true);
     try {
+      // Save the page body first — this establishes (or reuses) the previewId
+      // that the chrome previews then share.
+      // Snapshot the draft translations alongside the body preview so reload
+      // restores t:-backed edits (header logo/nav text live in COMMON; page
+      // text in TEMPLATE). Without this, resume reads live translations and
+      // every t:-ref field reverts. Stored on the body preview (the resume
+      // anchor); chrome text resolves from the shared common slice.
+      const { commonTranslations, templateTranslations } =
+        useTemplateStore.getState();
       const { previewId, url, version } = await EditorAPI.getPreviewLink({
         themeId,
         templateId: tmpl.id,
@@ -85,8 +219,39 @@ export default function TemplateEditor({
         routeContext: tmpl.routeContext,
         env: PREVIEW_ENV,
         language,
-        pageConfig,
+        pageConfig: bodyPageConfig,
+        metadata: {
+          rawPageConfig: rawBodyPageConfig,
+          translations: {
+            common: commonTranslations,
+            template: templateTranslations,
+          },
+        },
       });
+      // Persist each edited chrome template's preview under the same previewId,
+      // preserving that template's own layout/dataSources and swapping in the
+      // edited sections. Best-effort — a chrome failure must not lose the page
+      // preview the user asked for.
+      await Promise.all(
+        Array.from(chromeByTemplate, ([chromeId, sections]) =>
+          EditorAPI.getPreviewLink({
+            themeId,
+            templateId: chromeId,
+            previewId,
+            env: PREVIEW_ENV,
+            language,
+            pageConfig: {
+              ...(chromeConfigs[chromeId] ?? {}),
+              sections: resolveSections(sections),
+            },
+            metadata: {
+              rawPageConfig: { ...(chromeConfigs[chromeId] ?? {}), sections },
+            },
+          }).catch((e) =>
+            console.warn(`Chrome preview save failed for ${chromeId}`, e),
+          ),
+        ),
+      );
       // Bind the (possibly new) session id and clear the dirty flag so the
       // editor reflects a saved state (it reloads this same draft next time).
       useTemplateStore.setState({
@@ -115,25 +280,110 @@ export default function TemplateEditor({
             }
             useTemplateStore.getState().reset();
             const lang = useThemeStore.getState().language;
-            const [common, template, draft, livePageConfig] =
-              await Promise.all([
-                EditorAPI.getTranslation(themeId, "common", lang),
-                EditorAPI.getTranslation(themeId, tmpl.id, lang),
-                // Resume the active "Save and Preview" draft if one exists…
-                EditorAPI.getLatestPreview(themeId, tmpl.id),
-                // …otherwise fall back to the published/live template.
-                EditorAPI.getTemplate(themeId, tmpl.id),
-              ]);
-            const pageConfig = draft?.pageConfig ?? livePageConfig;
+            // Load shared header/footer (their own DB templates) alongside the
+            // page and splice their sections into pageConfig — see
+            // mergeChromeIntoPage. Best-effort: missing rows → page only.
+            const chrome = findChromeTemplateIds(
+              useThemeStore.getState().theme,
+            );
+            const [
+              common,
+              template,
+              draft,
+              livePageConfig,
+              headerLive,
+              footerLive,
+              headerDraft,
+              footerDraft,
+            ] = await Promise.all([
+              EditorAPI.getTranslation(themeId, "common", lang),
+              EditorAPI.getTranslation(themeId, tmpl.id, lang),
+              // Resume the active "Save and Preview" draft if one exists…
+              EditorAPI.getLatestPreview(themeId, tmpl.id),
+              EditorAPI.getTemplate(themeId, tmpl.id),
+              chrome.header
+                ? EditorAPI.getTemplate(themeId, chrome.header).catch(() => null)
+                : Promise.resolve(null),
+              chrome.footer
+                ? EditorAPI.getTemplate(themeId, chrome.footer).catch(() => null)
+                : Promise.resolve(null),
+              // …and resume the header/footer drafts too, so chrome edits saved
+              // via "Save and Preview" reappear on reload (the body already does
+              // this above). Chrome is saved as its own per-template preview.
+              chrome.header
+                ? EditorAPI.getLatestPreview(themeId, chrome.header).catch(
+                    () => null,
+                  )
+                : Promise.resolve(null),
+              chrome.footer
+                ? EditorAPI.getLatestPreview(themeId, chrome.footer).catch(
+                    () => null,
+                  )
+                : Promise.resolve(null),
+            ]);
+            // Resume from the RAW (t:-ref-preserving) snapshot stashed in
+            // metadata, not the resolved pageConfig the storefront renders —
+            // so editing/Publish keep the i18n template model. Falls back to
+            // pageConfig (older drafts) then live.
+            const draftRaw = (m: { rawPageConfig?: unknown } | null | undefined) =>
+              m?.rawPageConfig;
+            const pageConfig =
+              draftRaw(draft?.metadata) ?? draft?.pageConfig ?? livePageConfig;
+            // Draft-preferred chrome for editing/preview; falls back to live.
+            const headerCfg =
+              draftRaw(headerDraft?.metadata) ??
+              headerDraft?.pageConfig ??
+              headerLive;
+            const footerCfg =
+              draftRaw(footerDraft?.metadata) ??
+              footerDraft?.pageConfig ??
+              footerLive;
+            const merged = mergeChromeIntoPage(
+              pageConfig,
+              { config: headerCfg, id: chrome.header },
+              { config: footerCfg, id: chrome.footer },
+            );
             const store = useTemplateStore.getState();
-            store.setTranslationData({ common, template });
-            store.setPageConfig(pageConfig);
-            // Re-bind the session id so further saves version the same draft.
-            if (draft) {
+            // Resume the draft's translations when present, so t:-backed edits
+            // (logo, nav text, search placeholder, …) reappear on reload. Fall
+            // back to live for older drafts / first load. Common drives the
+            // chrome (header/footer) text; template drives the page text.
+            const draftT = draft?.metadata?.translations;
+            store.setTranslationData({
+              common: draftT?.common ?? common,
+              template: draftT?.template ?? template,
+            });
+             if (draft) {
               useTemplateStore.setState({ activePreviewId: draft.previewId });
             }
+            store.setPageConfig(merged);
+            // Snapshot the LIVE chrome sections as the baseline so saveTemplate
+            // only rewrites a header/footer template that actually differs from
+            // live — and, crucially, so a resumed DRAFT edit (headerCfg above)
+            // is seen as a change to publish (baseline = live, not the draft).
+            const chromeSections = (cfg: unknown): unknown[] =>
+              (cfg as { sections?: unknown[] } | null)?.sections ?? [];
+            const chromeBaseline: Record<string, string> = {};
+            if (chrome.header)
+              chromeBaseline[chrome.header] = JSON.stringify(
+                chromeSections(headerLive),
+              );
+            if (chrome.footer)
+              chromeBaseline[chrome.footer] = JSON.stringify(
+                chromeSections(footerLive),
+              );
+            store.setChromeBaseline(chromeBaseline);
+            // Keep each chrome template's FULL config (layout/dataSources +
+            // sections) so "Save and Preview" can persist a per-chrome preview
+            // that preserves dataSources while swapping in the edited sections.
+            const chromeConfigs: Record<string, Record<string, unknown>> = {};
+            if (chrome.header && headerCfg)
+              chromeConfigs[chrome.header] = headerCfg as Record<string, unknown>;
+            if (chrome.footer && footerCfg)
+              chromeConfigs[chrome.footer] = footerCfg as Record<string, unknown>;
+            store.setChromeConfigs(chromeConfigs);
             const sectionIds: string[] =
-              (pageConfig as { sections?: { id: string }[] } | null)
+              (merged as { sections?: { id: string }[] } | null)
                 ?.sections?.map((s) => s.id) ?? [];
             store.setExpandedSections(new Set(sectionIds));
           }),
@@ -155,7 +405,36 @@ export default function TemplateEditor({
             if (!themeId || !tmpl?.id) {
               throw new Error("Missing themeId or currentTemplate.id");
             }
-            if (!pc) throw new Error("No pageConfig to publish");
+            if (!pc) throw new Error("No pageConfig to save");
+
+            // Split the merged sections: page sections save to the current
+            // template; chrome sections save back to their own (header/footer)
+            // templates. The `_chromeTemplateId` tag is stripped before saving.
+            const pageSections: any[] = [];
+            const chromeByTemplate = new Map<string, any[]>();
+            for (const section of (pc.sections ?? []) as any[]) {
+              const chromeId: string | undefined = section._chromeTemplateId;
+              if (chromeId) {
+                const clean = { ...section };
+                delete clean._chromeTemplateId;
+                delete clean._chromeRole;
+                chromeByTemplate.set(chromeId, [
+                  ...(chromeByTemplate.get(chromeId) ?? []),
+                  clean,
+                ]);
+              } else {
+                pageSections.push(section);
+              }
+            }
+
+            const theme = useThemeStore.getState().theme;
+            const findEntry = (
+              id: string,
+            ): ThemeStructureTemplate | undefined =>
+              theme?.templateStructure
+                ?.flatMap((g) => g.templates ?? [])
+                .find((t) => t.id === id);
+
             const res = await EditorAPI.saveTemplate(themeId, tmpl.id, {
               metadata: {
                 id: tmpl.id,
@@ -166,7 +445,7 @@ export default function TemplateEditor({
                 routeContext: tmpl.routeContext,
               },
               layout: pc.layout,
-              sections: pc.sections,
+              sections: pageSections,
               dataSources: pc.dataSources,
             });
             // Purge the merchant's whole preview session now that it's live.
@@ -181,7 +460,34 @@ export default function TemplateEditor({
               hasUnsavedChanges: false,
               activePreviewId: null,
             });
-            toast.success(res.message || "Published to live successfully");
+
+            // Persist only the chrome (header/footer) templates the user
+            // actually edited — compare against the loaded baseline so a
+            // page-only save leaves untouched header/footer rows alone.
+            const baseline = useTemplateStore.getState().chromeBaseline;
+            const nextBaseline = { ...baseline };
+            for (const [chromeId, sections] of chromeByTemplate) {
+              const serialized = JSON.stringify(sections);
+              if (serialized === baseline[chromeId]) continue;
+              const entry = findEntry(chromeId);
+              await EditorAPI.saveTemplate(themeId, chromeId, {
+                metadata: {
+                  id: chromeId,
+                  name: entry?.name || chromeId,
+                  brand: themeId,
+                  type: entry?.routeContext?.type || "header",
+                  version: "1.0.0",
+                  routeContext: entry?.routeContext,
+                },
+                sections,
+                dataSources: {},
+              });
+              // Advance the baseline so a later page-only save doesn't
+              // re-persist this now-saved chrome template again.
+              nextBaseline[chromeId] = serialized;
+            }
+            useTemplateStore.getState().setChromeBaseline(nextBaseline);
+            toast.success(res.message || "Template updated successfully");
           }),
 
           saveTranslations: fromPromise(async () => {
@@ -230,7 +536,32 @@ export default function TemplateEditor({
           // COMMIT_SETTLED transition drives the overlay drop.
           requestInitialCommit: () => {
             const pc = useTemplateStore.getState().pageConfig;
-            if (pc) commitServer(pc);
+            if (!pc) return;
+            commitServer(pc);
+            // Push chrome (header/footer) to the iframe too. In editor mode the
+            // iframe renders chrome from the LIVE templates (it doesn't resolve
+            // previews — that's only the shareable ?editorPreview link), and
+            // commitServer's applyConfig carries the page BODY only. So a
+            // resumed DRAFT's chrome wouldn't show until the user re-edited it.
+            // Patch each chrome section/widget (t:-refs resolved by the bridge)
+            // so the iframe reflects the draft header/footer immediately; the
+            // body soft-nav doesn't re-render the layout, so these persist.
+            for (const section of (pc.sections ?? []) as {
+              id: string;
+              _chromeTemplateId?: string;
+              settings?: Record<string, unknown>;
+              widgets?: { id: string; settings?: Record<string, unknown> }[];
+            }[]) {
+              if (!section._chromeTemplateId) continue;
+              commitClientSection(section.id, section.settings ?? {});
+              for (const widget of section.widgets ?? []) {
+                commitClientWidget(
+                  section.id,
+                  widget.id,
+                  widget.settings ?? {},
+                );
+              }
+            }
           },
         },
         guards: {
@@ -324,9 +655,15 @@ export default function TemplateEditor({
 
   const isCommitting = state.matches({ editing: { preview: "committing" } });
   const previewLoading = state.hasTag("previewLoading");
+  // Carry the active "Save and Preview" draft id into the iframe URL so the
+  // INITIAL render resolves the draft (no live→draft flip on reload). The
+  // iframe mounts only after boot, by which point fetchTemplateData has set
+  // activePreviewId, so the very first paint already has it. Reused id ⇒ stable
+  // URL (no reload on subsequent saves); cleared on publish ⇒ reloads to live.
   const previewUrl = buildPreviewUrl(
     previewOrigin,
     currentTemplate.routeContext?.path,
+    activePreviewId ? { previewId: activePreviewId } : undefined,
   );
 
   const isBooting = state.matches("bootingTemplate");

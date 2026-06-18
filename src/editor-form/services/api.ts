@@ -48,6 +48,18 @@ export interface LatestPreview {
   previewId: string;
   version: number;
   pageConfig: unknown;
+  /** Editor-only side-channel persisted on the preview row:
+   *  - rawPageConfig: the unresolved (t:-ref) config used to resume editing
+   *    without baking literals into the template.
+   *  - translations: the draft common/template translations at save time, so
+   *    reload restores t:-backed edits (logo, nav text, …) instead of live. */
+  metadata?: {
+    rawPageConfig?: unknown;
+    translations?: {
+      common?: Record<string, unknown>;
+      template?: Record<string, unknown>;
+    };
+  } | null;
 }
 
 /**
@@ -300,11 +312,14 @@ export class EditorAPI {
   static async getPreviewLink(body: {
     themeId: string;
     templateId: string;
-    routeContext: unknown;
+    routeContext?: unknown;
     env: PreviewEnv;
     language: string;
     pageConfig: unknown;
     previewId?: string;
+    /** Editor-only side-channel persisted on the preview row (e.g.
+     *  { rawPageConfig } — the unresolved config for resume). */
+    metadata?: unknown;
   }): Promise<{
     previewId: string;
     version: number;
@@ -344,7 +359,12 @@ export class EditorAPI {
         .json<ApiEnvelope<LatestPreview>>();
       const d = json?.data;
       if (!d?.previewId || !d?.pageConfig) return null;
-      return { previewId: d.previewId, version: d.version, pageConfig: d.pageConfig };
+      return {
+        previewId: d.previewId,
+        version: d.version,
+        pageConfig: d.pageConfig,
+        metadata: d.metadata ?? null,
+      };
     } catch {
       // 404 (no draft yet) or any error — fall back to the live template.
       return null;

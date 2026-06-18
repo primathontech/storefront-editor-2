@@ -43,6 +43,17 @@ export interface TemplateStore {
   // time); resumed from the backend on load; cleared on publish (which purges
   // the session) so the next preview starts a fresh id.
   activePreviewId: string | null;
+  // Serialized (JSON) snapshot of each chrome (header/footer) template's
+  // sections as last loaded/saved, keyed by template id. saveTemplate
+  // compares the current chrome sections against this so a page-only edit
+  // doesn't rewrite untouched header/footer templates.
+  chromeBaseline: Record<string, string>;
+  // Full chrome (header/footer) template pageConfigs as last loaded, keyed by
+  // template id. Lets "Save and Preview" persist a per-chrome preview snapshot
+  // that preserves the template's own layout/dataSources while swapping in the
+  // edited sections — so the storefront's renderChrome resolves the edited
+  // header/footer in preview mode.
+  chromeConfigs: Record<string, Record<string, unknown>>;
 
   // ---- Translations (self-contained — no dualTranslationStore) ----
   // `language` lives in themeStore (theme-level per Lakshya contract).
@@ -69,6 +80,8 @@ export interface TemplateStore {
 
   // ---- Setters (write-only state) ----
   setPageConfig: (config: any) => void;
+  setChromeBaseline: (baseline: Record<string, string>) => void;
+  setChromeConfigs: (configs: Record<string, Record<string, unknown>>) => void;
   setSelectedSection: (id: string | null) => void;
   setSelectedWidget: (id: string | null) => void;
   toggleSectionExpansion: (sectionId: string) => void;
@@ -143,8 +156,8 @@ export const useTemplateStore = create<TemplateStore>()(
   devtools(
     (set, get) => ({
       pageConfig: null,
-      hasUnsavedChanges: false,
-      activePreviewId: null,
+      chromeBaseline: {},
+      chromeConfigs: {},
 
       commonTranslations: {},
       templateTranslations: {},
@@ -160,6 +173,8 @@ export const useTemplateStore = create<TemplateStore>()(
 
       // -- Setters --
       setPageConfig: (config) => set({ pageConfig: config }),
+      setChromeBaseline: (baseline) => set({ chromeBaseline: baseline }),
+      setChromeConfigs: (configs) => set({ chromeConfigs: configs }),
 
       setSelectedSection: (id) =>
         set({
@@ -209,6 +224,8 @@ export const useTemplateStore = create<TemplateStore>()(
           pageConfig: null,
           hasUnsavedChanges: false,
           activePreviewId: null,
+          chromeBaseline: {},
+          chromeConfigs: {},
           selectedSectionId: null,
           selectedWidgetId: null,
           expandedSections: new Set<string>(),
