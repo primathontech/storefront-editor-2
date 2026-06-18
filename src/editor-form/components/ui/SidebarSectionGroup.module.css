@@ -61,6 +61,17 @@
   display: block;
 }
 
+/* Chrome (header/footer) groups: fixed structure, not draggable. Keep the
+   section-type icon visible on hover and drop the grab cursor — there is no
+   drag grip to swap to. */
+.groupFixed .dragHandle {
+  cursor: default;
+}
+
+.groupFixed:hover .layoutIcon {
+  display: block;
+}
+
 .sectionContent {
   min-width: 0;
 }

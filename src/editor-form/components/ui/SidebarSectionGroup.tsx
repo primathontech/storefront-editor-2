@@ -46,6 +46,10 @@ export const SidebarSectionGroup: React.FC<SidebarSectionGroupProps> = ({
   className,
 }) => {
   const sectionId = section.id;
+  // Chrome (header/footer) groups are passed no drag listeners — their
+  // structure is fixed, so suppress the drag grip + grab cursor (the
+  // section-type icon still shows) rather than dangle a handle that no-ops.
+  const isDraggable = Boolean(dragListeners);
   const hasErrors = sectionErrors.length > 0;
   const isAnyWidgetSelected =
     selectedWidgetId !== null &&
@@ -55,6 +59,7 @@ export const SidebarSectionGroup: React.FC<SidebarSectionGroupProps> = ({
   const firstWidget = section.widgets?.[0];
   const groupClassName = [
     styles.group,
+    !isDraggable ? styles.groupFixed : null,
     hasErrors ? styles.groupError : null,
     !hasErrors && isAnyWidgetSelected ? styles.groupSelected : null,
     className,
@@ -83,7 +88,7 @@ export const SidebarSectionGroup: React.FC<SidebarSectionGroupProps> = ({
       )}
       <div className={styles.dragHandle} {...dragListeners} {...dragAttributes}>
         <LayoutIcon className={styles.layoutIcon} />
-        <DragDotsIcon className={styles.dragIcon} />
+        {isDraggable && <DragDotsIcon className={styles.dragIcon} />}
       </div>
       <div className={styles.sectionContent}>
         <div className={styles.content}>
