@@ -77,6 +77,9 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   // Matches the old submodule's isSectionInLibrary check.
   const isRemovableSection = useMemo(() => {
     if (!selectedSection) return false;
+    // Chrome (header/footer) sections are fixed structure — never removable,
+    // regardless of whether they happen to match a library section id.
+    if (selectedSection._chromeTemplateId) return false;
     return Object.values(librarySections).some((lib) => {
       const libId = (lib as { id?: string })?.id;
       if (!libId) return false;

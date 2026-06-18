@@ -165,15 +165,22 @@ export function commitServer(pageConfig: unknown): void {
     const ts = args.getTs();
     if (!ts) return;
     const pc = pageConfig as {
-      sections: { widgets: { settings?: Record<string, unknown> }[] }[];
+      sections: {
+        _chromeTemplateId?: string;
+        widgets: { settings?: Record<string, unknown> }[];
+      }[];
     };
+    // Chrome (header/footer) sections live in pageConfig for editing but are
+    // rendered by the layout, not the page body — drop them so the preview
+    // doesn't double-render them. No-op on pages without chrome.
+    const bodySections = pc.sections.filter((s) => !s._chromeTemplateId);
     // Pre-resolve t:-refs in every widget's settings so the iframe-side
     // render doesn't need a translations fetch — see momsco's
     // readEditorPreviewState consumer which skips translations when
     // previewPageConfig is non-null.
     const resolved = {
       ...pc,
-      sections: pc.sections.map((section) => ({
+      sections: bodySections.map((section) => ({
         ...section,
         widgets: section.widgets.map((widget) => ({
           ...widget,
