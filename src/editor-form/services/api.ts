@@ -328,6 +328,33 @@ export class EditorAPI {
     };
   }
 
+  /**
+   * Menu picker options — the merchant's published nav menus as
+   * `{ value: handle, label: title }` for the Header/Footer `menuHandle`
+   * dropdown. Goes through visual-editor-be (`POST /api/v1/merchants/nav-menus`),
+   * which calls the gokwik list endpoint server-side — so no CORS / no
+   * `gk-merchant-id` header from the browser. Best-effort: returns `[]` on
+   * failure so the field falls back to the saved handle.
+   */
+  static async getNavMenuOptions(): Promise<
+    Array<{ value: string; label: string }>
+  > {
+    const merchantId = useAuthStore.getState().merchant?.id;
+    if (!merchantId) return [];
+    try {
+      const json = await editorBe
+        .post("api/v1/merchants/nav-menus", { json: { merchantId } })
+        .json<ApiEnvelope<{ items?: Array<{ handle: string; title?: string }> }>>();
+      return (json?.data?.items ?? []).map((m) => ({
+        value: m.handle,
+        label: m.title?.trim() || m.handle,
+      }));
+    } catch (err) {
+      console.error("Error fetching nav-menu options:", err);
+      return [];
+    }
+  }
+
   static async getDataSourceOptions(
     type: "collections" | "products",
   ): Promise<Array<{ value: string; label: string }>> {
