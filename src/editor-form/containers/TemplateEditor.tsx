@@ -25,7 +25,8 @@ import { EditorAPI } from "../services/api";
 import { templateSessionMachine } from "../../machines/templateSession";
 import type { PreviewEnv,ThemeStructure, ThemeStructureTemplate } from "../services/api";
 import { RESPONSIVE_FRAME_STYLE } from "../utils/preview-frame-style";
-import { buildPreviewUrl } from "../utils/preview-route";
+import { buildPreviewUrl, rebasePreviewUrl } from "../utils/preview-route";
+import { resolveSectionSettings } from "../utils/translation-utils";
 
 // Find the header/footer template IDs from the theme structure. Chrome
 // templates are tagged by routeContext.type ("header"/"footer").
@@ -86,14 +87,6 @@ interface TemplateEditorProps {
   onSwitchTemplate: (template: ThemeStructureTemplate) => void;
 }
 
-// Environment tier the preview snapshot renders against (preview doc §1:
-// local | sandbox | production). There's no env selector yet (doc §5.2 is a
-// later pass), so default to production and drop to local only on the dev/QA
-// editor build — the same gate the preview-origin override uses.
-const PREVIEW_ENV: PreviewEnv =
-  import.meta.env.VITE_ALLOW_PREVIEW_ORIGIN_OVERRIDE === "true"
-    ? "local"
-    : "production";
 
 export default function TemplateEditor({
   onSwitchTemplate,
@@ -134,43 +127,12 @@ export default function TemplateEditor({
       toast.error("Can't save preview — template isn't ready yet.");
       return;
     }
-    // Split the merged editing config back into its real templates, mirroring
-    // saveTemplate. Chrome (header/footer) sections are spliced into pageConfig
-    // for editing (mergeChromeIntoPage) but belong to their OWN templates and
-    // are rendered separately by the storefront layout (renderChrome). The
-    // preview must store them the same way:
-    //   • page-body sections  → the current template's preview (no chrome, so
-    //     the layout's chrome isn't doubled and nothing accumulates per version)
-    //   • each chrome group    → a preview for ITS template (dawn_header_default
-    //     / dawn_footer_default) under the SAME previewId, so renderChrome
-    //     resolves the edited header/footer in preview mode.
+    
     const chromeConfigs = useTemplateStore.getState().chromeConfigs;
-    // Pre-resolve t:-refs in every widget's settings before saving — exactly
-    // what commitServer does for the LIVE preview. Translation-backed fields
-    // (header logo image t:common.header.logoPath, nav links/dropdowns, etc.)
-    // are edited into the DRAFT translations, which are only written live on
-    // Publish. The preview snapshot stores pageConfig, not translations, so
-    // saving raw t:-refs makes the storefront resolve them against the STALE
-    // live translations — the edited image/menu wouldn't show until publish.
-    // Resolving here bakes the current draft values into the snapshot.
+    
     const ts = useTemplateStore.getState().translationService;
-    const resolveSections = (sections: unknown[]): unknown[] =>
-      ts
-        ? sections.map((s) => {
-            const sec = s as {
-              widgets?: { settings?: Record<string, unknown> }[];
-            };
-            return {
-              ...sec,
-              widgets: (sec.widgets ?? []).map((w) => ({
-                ...w,
-                settings: ts.translateObject(
-                  w.settings ?? {},
-                ) as Record<string, unknown>,
-              })),
-            };
-          })
-        : sections;
+    const resolveSections = (sections: unknown[]) =>
+      resolveSectionSettings(sections, ts);
 
     const bodySections: unknown[] = [];
     const chromeByTemplate = new Map<string, unknown[]>();
@@ -217,8 +179,6 @@ export default function TemplateEditor({
         templateId: tmpl.id,
         previewId: activePreviewId ?? undefined,
         routeContext: tmpl.routeContext,
-        env: PREVIEW_ENV,
-        language,
         pageConfig: bodyPageConfig,
         metadata: {
           rawPageConfig: rawBodyPageConfig,
@@ -238,7 +198,6 @@ export default function TemplateEditor({
             themeId,
             templateId: chromeId,
             previewId,
-            env: PREVIEW_ENV,
             language,
             pageConfig: {
               ...(chromeConfigs[chromeId] ?? {}),
@@ -259,7 +218,14 @@ export default function TemplateEditor({
         activePreviewId: previewId,
       });
       // Surface the shareable link in a modal (open-in-tab / copy actions).
-      setPreviewLink({ url, version });
+      // Re-host the backend URL on the editor's known previewOrigin — the
+      // backend builds it from merchant.url, which may be a stale/relative
+      // domain. We keep only its path+query and use previewOrigin as the host.
+      const origin = useAuthStore.getState().merchant?.previewOrigin;
+      setPreviewLink({
+        url: origin ? rebasePreviewUrl(url, origin) : url,
+        version,
+      });
     } catch (err) {
       console.error("getPreviewLink failed", err);
       toast.error("Couldn't save the preview.");

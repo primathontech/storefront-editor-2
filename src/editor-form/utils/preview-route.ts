@@ -46,6 +46,21 @@ export function buildPreviewUrl(
   return `${origin}${safePath}?${params.toString()}`;
 }
 
+export function rebasePreviewUrl(
+  backendUrl: string,
+  previewOrigin: string,
+): string {
+  const origin = previewOrigin.replace(/\/+$/, "");
+  // Drop scheme, then the host segment (everything up to the first "/" or "?"),
+  let rest = (backendUrl || "")
+    .replace(/^[a-z][a-z0-9+.-]*:\/\//i, "")
+    .replace(/^[^/?]*/, "");
+  // Query-only ("?…") and a bare "/" both mean "no path" — strip the leading
+  if (rest.startsWith("/?")) rest = rest.slice(1);
+  else if (rest === "/") rest = "";
+  return `${origin}${rest}`;
+}
+
 /**
  * Build the initial iframe URL for the static-template editor preview
  * lane. Used ONCE when TranslationEditor mounts; subsequent template

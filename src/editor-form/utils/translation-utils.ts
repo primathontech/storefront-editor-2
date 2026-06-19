@@ -195,3 +195,29 @@ export function buildTranslationService(
   if (!merged || Object.keys(merged).length === 0) return null;
   return new TranslationService(language as Locale, merged);
 }
+
+/**
+ * Resolve t:-refs in every widget's settings across a list of sections (deep,
+ * via TranslationService.translateObject), baking the current draft values into
+ * literals. Returns the sections unchanged when no service is available.
+ *
+ * Shared by the LIVE preview (commitServer → applyConfig) and the SAVED preview
+ * (handlePreview) so both hand the storefront identical, already-resolved config.
+ */
+export function resolveSectionSettings(
+  sections: unknown[],
+  ts: TranslationService | null,
+): unknown[] {
+  if (!ts) return sections;
+  type Section = { widgets?: { settings?: Record<string, unknown> }[] };
+  return (sections as Section[]).map((section) => ({
+    ...section,
+    widgets: (section.widgets ?? []).map((widget) => ({
+      ...widget,
+      settings: ts.translateObject(widget.settings ?? {}) as Record<
+        string,
+        unknown
+      >,
+    })),
+  }));
+}

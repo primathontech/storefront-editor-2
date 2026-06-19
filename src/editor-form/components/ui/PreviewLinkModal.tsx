@@ -66,17 +66,7 @@ export const PreviewLinkModal: React.FC<PreviewLinkModalProps> = ({
         value={url}
         onFocus={(e) => e.currentTarget.select()}
         aria-label="Preview link"
-        style={{
-          width: "100%",
-          padding: "10px 12px",
-          fontSize: 13,
-          border: "1px solid #dfdfdf",
-          borderRadius: 6,
-          background: "#f7f7f7",
-          color: "#111",
-          fontFamily:
-            "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
-        }}
+        className="w-full rounded-md border border-[#dfdfdf] bg-[#f7f7f7] px-3 py-2.5 font-mono text-[13px] text-[#111]"
       />
     </Modal>
   );
