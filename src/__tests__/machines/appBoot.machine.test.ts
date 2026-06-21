@@ -1,6 +1,6 @@
 // Layer 2 — machine wiring. Drives appBootMachine with provided stub
 // actors/guards (the real bodies live in App.tsx). Verifies the auth
-// lifecycle: credential gate → authenticating → authenticated / error fan-out.
+// lifecycle: boot gate → authenticating → authenticated / error fan-out.
 import { describe, it, expect, vi } from "vitest";
 import { createActor, fromPromise, waitFor } from "xstate";
 import {
@@ -17,7 +17,9 @@ const SESSION: Session = {
   merchant: { id: "m1", themeId: "momsco", previewOrigin: "http://localhost:4344" },
 };
 
-const CREDS: Input = { mid: "momsco", token: "tok" };
+// Boot eligibility = mid + GK-embedded iframe. Token is present but never
+// gates boot (mirrors the real `canBoot` in App.tsx).
+const CREDS: Input = { mid: "momsco", token: "tok", isEmbedded: true };
 
 function boot(opts: {
   input: Input;
@@ -31,8 +33,10 @@ function boot(opts: {
     },
     actions: { persistSession, clearSession },
     guards: {
-      hasCredentials: ({ context }) =>
-        !!context.input.mid && !!context.input.token,
+      // Mirrors App.tsx: boot needs `mid` + an embedded iframe; token is
+      // intentionally not consulted.
+      canBoot: ({ context }) =>
+        !!context.input.mid && context.input.isEmbedded,
       isAuthError: ({ event }) =>
         (event as { error?: unknown }).error instanceof AuthError,
       isNetworkError: ({ event }) =>
@@ -47,15 +51,15 @@ function boot(opts: {
 }
 
 describe("appBootMachine", () => {
-  it("with no credentials lands on unauthenticated.missingToken", () => {
+  it("when boot is not allowed lands on unauthenticated.missingToken", () => {
     const { actor } = boot({
-      input: { mid: null, token: null },
+      input: { mid: null, token: null, isEmbedded: false },
       authenticate: async () => SESSION,
     });
     expect(actor.getSnapshot().matches({ unauthenticated: "missingToken" })).toBe(true);
   });
 
-  it("with credentials + successful auth reaches authenticated and persists the session", async () => {
+  it("when boot is allowed + successful auth reaches authenticated and persists the session", async () => {
     const { actor, persistSession } = boot({
       input: CREDS,
       authenticate: async () => SESSION,

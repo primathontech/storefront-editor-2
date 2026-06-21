@@ -4,9 +4,9 @@
 // instances (so the beforeRequest auth-header hook and afterResponse 401
 // no-op actually run) and the real envelope-unwrapping / error / fallback
 // logic. The ONLY thing stubbed is the network edge: globalThis.fetch (ky
-// calls it under the hood; the direct OpenAI/Anthropic methods call it
-// directly). import.meta.env reads are driven with vi.stubEnv, and the
-// dev-only previewOrigin override is exercised through jsdom's location.
+// calls it under the hood for every request, including the AI proxy routes).
+// import.meta.env reads are driven with vi.stubEnv, and the dev-only
+// previewOrigin override is exercised through jsdom's location.
 import {
   describe,
   it,
@@ -351,76 +351,76 @@ describe("EditorAPI.getDataSourceOptions", () => {
 describe("EditorAPI.transcribeAudio", () => {
   const blob = new Blob(["audio"], { type: "audio/webm" });
 
-  it("throws when VITE_OPENAI_API_KEY is not configured", async () => {
-    vi.stubEnv("VITE_OPENAI_API_KEY", "");
-    await expect(EditorAPI.transcribeAudio(blob)).rejects.toThrow(
-      /VITE_OPENAI_API_KEY is not configured/,
-    );
-  });
-
-  it("posts to OpenAI Whisper and returns the transcript text", async () => {
-    vi.stubEnv("VITE_OPENAI_API_KEY", "sk-test");
+  it("posts the audio to the editor-BE Whisper proxy and returns the transcript", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ text: "hello world" }));
 
     const text = await EditorAPI.transcribeAudio(blob);
 
     expect(text).toBe("hello world");
-    const [url, init] = fetchMock.mock.calls.at(-1)!;
-    expect(url).toBe("https://api.openai.com/v1/audio/transcriptions");
-    expect((init as RequestInit).method).toBe("POST");
-    expect((init as { headers: Record<string, string> }).headers.Authorization).toBe(
-      "Bearer sk-test",
+    const req = lastRequest();
+    // Proxied through editorBe (OFCE-48) — key is injected server-side, not here.
+    expect(req.url).toContain("/api/v1/ai/transcribe");
+    expect(req.method).toBe("POST");
+  });
+
+  it("carries the editorBe bearer token from authStore", async () => {
+    useAuthStore.getState().setSession({
+      token: "secret-token",
+      merchant: { id: "m", themeId: "t1", previewOrigin: "https://x.test" },
+    });
+    fetchMock.mockResolvedValue(jsonResponse({ text: "hi" }));
+
+    await EditorAPI.transcribeAudio(blob);
+
+    expect(lastRequest().headers.get("Authorization")).toBe(
+      "Bearer secret-token",
     );
   });
 
   it("returns '' when the response has no text field", async () => {
-    vi.stubEnv("VITE_OPENAI_API_KEY", "sk-test");
     fetchMock.mockResolvedValue(jsonResponse({}));
     await expect(EditorAPI.transcribeAudio(blob)).resolves.toBe("");
   });
 
-  it("throws with status when OpenAI responds non-ok", async () => {
-    vi.stubEnv("VITE_OPENAI_API_KEY", "sk-test");
-    fetchMock.mockResolvedValue(new Response("rate limited", { status: 429 }));
-    await expect(EditorAPI.transcribeAudio(blob)).rejects.toThrow(
-      /OpenAI Whisper error 429/,
-    );
+  it("propagates the ky HTTPError when the proxy responds non-ok", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ message: "rate limited" }, 429));
+    await expect(EditorAPI.transcribeAudio(blob)).rejects.toThrow();
   });
 });
 
 describe("EditorAPI.anthropicMessages", () => {
   const body = { model: "claude", messages: [] };
 
-  it("throws when VITE_ANTHROPIC_API_KEY is not configured", async () => {
-    vi.stubEnv("VITE_ANTHROPIC_API_KEY", "");
-    await expect(EditorAPI.anthropicMessages(body)).rejects.toThrow(
-      /VITE_ANTHROPIC_API_KEY is not configured/,
-    );
-  });
-
-  it("posts to Anthropic with the required headers and returns the JSON", async () => {
-    vi.stubEnv("VITE_ANTHROPIC_API_KEY", "ak-test");
+  it("posts requestBody to the editor-BE generate proxy and returns the JSON", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ content: [{ text: "{}" }] }));
 
     const result = await EditorAPI.anthropicMessages(body);
 
     expect(result).toEqual({ content: [{ text: "{}" }] });
-    const [url, init] = fetchMock.mock.calls.at(-1)!;
-    expect(url).toBe("https://api.anthropic.com/v1/messages");
-    const headers = (init as { headers: Record<string, string> }).headers;
-    expect(headers["x-api-key"]).toBe("ak-test");
-    expect(headers["anthropic-version"]).toBe("2023-06-01");
-    expect(headers["anthropic-dangerous-direct-browser-access"]).toBe("true");
-    // Body is JSON-stringified verbatim.
-    expect((init as RequestInit).body).toBe(JSON.stringify(body));
+    const req = lastRequest();
+    // Proxied through editorBe (OFCE-48) — Anthropic key + version/beta
+    // headers are injected server-side.
+    expect(req.url).toContain("/api/v1/ai/generate");
+    expect(req.method).toBe("POST");
   });
 
-  it("throws with status when Anthropic responds non-ok", async () => {
-    vi.stubEnv("VITE_ANTHROPIC_API_KEY", "ak-test");
-    fetchMock.mockResolvedValue(new Response("overloaded", { status: 529 }));
-    await expect(EditorAPI.anthropicMessages(body)).rejects.toThrow(
-      /Anthropic API error 529/,
-    );
+  it("wraps the payload under { requestBody } in the JSON body", async () => {
+    // The request body is a stream ky consumes on send, so capture it inside
+    // the mock (before fetch reads it) rather than off the Request afterwards.
+    let sentBody = "";
+    fetchMock.mockImplementation(async (req: Request) => {
+      sentBody = await req.text();
+      return jsonResponse({ content: [] });
+    });
+
+    await EditorAPI.anthropicMessages(body);
+
+    expect(JSON.parse(sentBody)).toEqual({ requestBody: body });
+  });
+
+  it("propagates the ky HTTPError when the proxy responds non-ok", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ message: "overloaded" }, 529));
+    await expect(EditorAPI.anthropicMessages(body)).rejects.toThrow();
   });
 });
 
