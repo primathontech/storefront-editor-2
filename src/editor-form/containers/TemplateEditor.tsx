@@ -438,7 +438,7 @@ export default function TemplateEditor({
                 // downgrade strips the referrer under the default policy, so the
                 // iframe-side bridge gate (resolveEditorOrigin) can't identify
                 // the editor. `origin` survives the downgrade and sends only the
-                // origin (no token leak). Prod keeps the secure default.
+                // origin (no token leak). Prod keeps the secure default. 
                 referrerPolicy={
                   import.meta.env.VITE_ALLOW_PREVIEW_ORIGIN_OVERRIDE === "true"
                     ? "origin"
