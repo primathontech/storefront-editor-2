@@ -42,7 +42,15 @@ export interface RealEnv {
 export const realEnv: RealEnv = {
   mid: process.env.E2E_REAL_MID ?? "19arhposfw3y",
   token: process.env.E2E_REAL_TOKEN ?? "e2e-real",
-  previewOrigin: process.env.E2E_REAL_PREVIEW_ORIGIN ?? "http://localhost:4344",
+  // The origin the iframe loads — must match what the editor resolves the
+  // merchant's storefront to. E2E_REAL_PREVIEW_ORIGIN overrides just the
+  // harness; otherwise it follows E2E_PREVIEW_ORIGIN (the same var the
+  // webServer/target config uses) so ONE var points the whole run at a
+  // staging/prod storefront. Defaults to local momsco.
+  previewOrigin:
+    process.env.E2E_REAL_PREVIEW_ORIGIN ??
+    process.env.E2E_PREVIEW_ORIGIN ??
+    "http://localhost:4344",
 };
 
 /** Poll a URL until it responds OK, instead of a single fragile ping.
@@ -227,6 +235,43 @@ export class RealEditor {
     );
     // The new template's pageConfig refetches; wait for sidebar to repopulate.
     await expect(this.allSectionRows.first()).toBeVisible({ timeout: 20_000 });
+  }
+
+  /** Switch to whatever ENABLED template the live dropdown currently offers,
+   *  other than the active one (and any label in `avoid`). Returns the chosen
+   *  label so callers can assert the chrome heading.
+   *
+   *  WHY data-driven, not a hard-coded label: which templates are hydrated
+   *  (enabled) vs. carry a route placeholder (disabled "— set sample params")
+   *  and what they're named both drift on the QA backend — e.g. "Products
+   *  (Default)" became unhydrated and "Account (Default)" was renamed. Picking
+   *  from the live, enabled options keeps these switches green across theme
+   *  changes. Disabled (unhydrated) and chrome-hidden (header/footer) options
+   *  are never selected — see TemplateSwitchDropdown.tsx. */
+  async switchToOtherTemplate(
+    opts: { avoid?: readonly string[] } = {},
+  ): Promise<string> {
+    await this.openDropdown();
+    const current = (await this.templateTrigger.textContent())?.trim() ?? "";
+    const avoid = new Set<string>([current, ...(opts.avoid ?? [])]);
+    const options = this.listbox.getByRole("option");
+    const count = await options.count();
+    for (let i = 0; i < count; i++) {
+      const option = options.nth(i);
+      if (await option.isDisabled()) continue;
+      const label = (await option.textContent())?.trim() ?? "";
+      if (!label || avoid.has(label)) continue;
+      await option.click();
+      await expect(this.templateTrigger).toHaveAttribute(
+        "aria-expanded",
+        "false",
+      );
+      await expect(this.allSectionRows.first()).toBeVisible({ timeout: 20_000 });
+      return label;
+    }
+    throw new Error(
+      `no enabled template option to switch to (avoiding: ${[...avoid].join(", ")})`,
+    );
   }
 
   // ──────────────────────────────────────────────────────────────────────

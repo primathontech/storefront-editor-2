@@ -58,16 +58,22 @@ export default defineConfig({
       stdout: "ignore",
       stderr: "pipe",
     },
-    {
-      // The preview target storefront — momsco by default, swappable via
-      // env (see e2e/target.config.ts). The editor itself is app-agnostic.
-      command: target.storefrontCmd,
-      cwd: target.storefrontCwd,
-      url: target.previewOrigin,
-      reuseExistingServer: !process.env.CI,
-      timeout: 120_000,
-      stdout: "ignore",
-      stderr: "pipe",
-    },
+    // The preview target storefront — only booted for a LOCAL target (momsco
+    // on :4344 by default). When E2E_PREVIEW_ORIGIN points at a remote
+    // (staging/prod) storefront it's already deployed, so we don't start one
+    // and don't health-check a local port that will never come up.
+    ...(target.isLocalTarget
+      ? [
+          {
+            command: target.storefrontCmd,
+            cwd: target.storefrontCwd,
+            url: target.previewOrigin,
+            reuseExistingServer: !process.env.CI,
+            timeout: 120_000,
+            stdout: "ignore" as const,
+            stderr: "pipe" as const,
+          },
+        ]
+      : []),
   ],
 });

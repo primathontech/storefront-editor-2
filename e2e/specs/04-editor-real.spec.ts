@@ -343,7 +343,7 @@ test.describe("editor real-platform — cases 31-50", () => {
   //   Logic:
   //     1. Boot Home, identify a body section, verify it starts visible.
   //     2. Hide it (no Save). In-session eye flips to "Show section".
-  //     3. Switch to Products (Default).
+  //     3. Switch to another live template (data-driven).
   //     4. Switch back to Home.
   //     5. The same section's eye must read "Hide section" again — the
   //        template switch refetched Home's canonical pageConfig and
@@ -370,7 +370,7 @@ test.describe("editor real-platform — cases 31-50", () => {
       "Show section",
     );
 
-    await editor.switchTemplate("Products (Default)");
+    await editor.switchToOtherTemplate();
     await editor.switchTemplate("Home (Default)");
     await editor.waitForIframeReady();
 
@@ -1239,15 +1239,24 @@ test.describe("editor real-platform — cases 31-50", () => {
 
     await editor.widgetTitle(heroId!).click();
 
-    // Add one so the test never deletes a real merchant slide.
-    const baseline = await editor.arrayItemCount();
-    await editor.arrayAddButton.click();
-    await expect.poll(() => editor.arrayItemCount()).toBe(baseline + 1);
-
     const iframeSlides = editor.iframe.locator(
       '[aria-label="Hero slideshow"] a',
     );
-    const iframeWithExtra = await iframeSlides.count();
+    const iframeBefore = await iframeSlides.count();
+
+    // Add one so the test never deletes a real merchant slide. Wait for the
+    // iframe to SETTLE at +1 before deleting — deleting mid-add races the
+    // bridge's soft-nav re-render, and the removal can be coalesced away
+    // (case 48 waits the same way for the same reason).
+    const baseline = await editor.arrayItemCount();
+    await editor.arrayAddButton.click();
+    await expect.poll(() => editor.arrayItemCount()).toBe(baseline + 1);
+    await expect
+      .poll(() => iframeSlides.count(), {
+        timeout: 15_000,
+        message: "iframe re-renders with the added slide before we delete it",
+      })
+      .toBe(iframeBefore + 1);
 
     // No confirmation prompt expected — the click removes immediately.
     await editor.arrayItemRemove(baseline + 1).click();
@@ -1255,7 +1264,7 @@ test.describe("editor real-platform — cases 31-50", () => {
     await expect.poll(() => editor.arrayItemCount()).toBe(baseline);
     await expect
       .poll(() => iframeSlides.count(), { timeout: 15_000 })
-      .toBe(iframeWithExtra - 1);
+      .toBe(iframeBefore);
   });
 
   // ──────────────────────────────────────────────────────────────────────

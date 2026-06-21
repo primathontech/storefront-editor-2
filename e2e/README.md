@@ -108,13 +108,26 @@ E2E_STOREFRONT_CWD=../<that-app> \
 bun run test:e2e
 ```
 
-### Point at a merchant's DEPLOYED storefront
+### Point at a merchant's DEPLOYED storefront (staging / prod)
+Local editor (the SUT) → the existing deployed BE → a configured merchant →
+that merchant's already-deployed storefront. Read-only — no local momsco.
 ```bash
 E2E_REAL_MID=<merchant_id> \
-E2E_REAL_PREVIEW_ORIGIN=https://shop.example.com \
+E2E_REAL_TOKEN=<valid_token_if_BE_enforces_auth> \
 E2E_PREVIEW_ORIGIN=https://shop.example.com \
+E2E_SKIP_SAVE=1 \
 bun run test:e2e
 ```
+- `E2E_PREVIEW_ORIGIN` must be the **exact origin** the BE has registered as
+  this merchant's `merchant.url` — the iframe loads that, and the harness
+  locates the iframe by this value. A mismatch ⇒ iframe-not-found timeouts.
+- Because the origin isn't `localhost`, `target.isLocalTarget` is false, so
+  Playwright **does not boot a local storefront** (see `target.config.ts` /
+  `playwright.config.ts`) — the deployed store is already up. `E2E_REAL_PREVIEW_ORIGIN`
+  still overrides just the harness side if you need it to differ.
+- `E2E_SKIP_SAVE=1` keeps the run **read-only** — the destructive Save tests
+  (files 05–07, incl. the mutate/revert cases) are skipped so no live merchant
+  data is touched. Drop it only against a throwaway merchant.
 
 > ⚠️ **Security gate:** the `?previewOrigin=` override is honored **only for
 > `localhost`/`127.0.0.1`** ([`api.ts` `pickPreviewOrigin`](../src/editor-form/services/api.ts)).
@@ -122,10 +135,15 @@ bun run test:e2e
 > `merchant.url` for that `mid`** — so for remote stores you really select the merchant by
 > **`mid`**, not by injecting a raw URL.
 
-> ⚠️ **Theme assumptions:** files 05–07 (and parts of 02–03) hardcode the **`dawn`** theme
-> (`THEME_ID`, `"Products (Default)"`, `HeroSlideshow`, `"Autoplay interval (ms)"`, …). A
-> merchant on `dawn` works; a different theme makes those tests fail or `test.skip`. `BE_URL`
-> is also hardcoded per file.
+> ⚠️ **Auth:** the default token `e2e-real` only works because the current deployed BE accepts
+> any Bearer. A BE that enforces auth needs a real `E2E_REAL_TOKEN`, or boot 401s and the whole
+> suite skips.
+
+> ⚠️ **Theme assumptions:** template switching is data-driven (picks live, enabled templates),
+> but files 05–07 (and parts of 02–03) still assume **`dawn`**-shaped widgets (`HeroSlideshow`,
+> `"Autoplay interval (ms)"`, …). A merchant on `dawn` works; a different theme makes those
+> `test.skip` or fail. `BE_URL` is also hardcoded per file (`visual-editor-be.primathontech.co.in`)
+> — to target a different BE, change that constant (and `VITE_EDITOR_API_URL` for the editor).
 
 ---
 

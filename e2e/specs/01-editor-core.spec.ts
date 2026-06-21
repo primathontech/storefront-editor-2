@@ -49,9 +49,16 @@ const isUnhydratedPath = (path: unknown): boolean =>
   typeof path === "string" &&
   (/\[[^\]]+\]/.test(path) || /:[A-Za-z]/.test(path));
 
+// Mirror of TemplateSwitchDropdown.tsx `isChromeTemplate`: header/footer
+// templates live in the theme structure for chrome-id discovery but are NOT
+// standalone pages, so the picker hides them. Replicated — not imported — to
+// keep the e2e build decoupled from editor source.
+const CHROME_TYPES = new Set(["header", "footer"]);
+
 interface LiveTemplate {
   label: string;
   path: string | undefined;
+  type: string | undefined;
 }
 
 let backendUp = false;
@@ -59,6 +66,10 @@ let storefrontUp = false;
 // Live values derived from the real dawn theme (populated in beforeAll).
 let themeName = "";
 let allTemplates: LiveTemplate[] = [];
+// Templates the dropdown actually renders — everything except chrome
+// (header/footer), which the picker hides. Case 9 asserts one option per
+// pickerTemplate, NOT per allTemplates.
+let pickerTemplates: LiveTemplate[] = [];
 // Templates with a concrete, non-root path — the ones case 10 can switch to
 // and verify a distinct iframe URL for.
 let walkTemplates: LiveTemplate[] = [];
@@ -76,7 +87,7 @@ test.beforeAll(async ({ request }) => {
         timeout: 8_000,
       });
       const body = (await r.json()) as {
-        data?: { theme?: { name?: string; id?: string; templateStructure?: Array<{ templates?: Array<{ id: string; name?: string; routeContext?: { path?: string } }> }> } };
+        data?: { theme?: { name?: string; id?: string; templateStructure?: Array<{ templates?: Array<{ id: string; name?: string; routeContext?: { path?: string; type?: string; templateName?: string } }> }> } };
       };
       const theme = body?.data?.theme;
       themeName = theme?.name || theme?.id || "";
@@ -84,7 +95,11 @@ test.beforeAll(async ({ request }) => {
         (g.templates ?? []).map((t) => ({
           label: t.name ?? t.id,
           path: t.routeContext?.path,
+          type: t.routeContext?.type ?? t.routeContext?.templateName,
         })),
+      );
+      pickerTemplates = allTemplates.filter(
+        (t) => !CHROME_TYPES.has(t.type ?? ""),
       );
       walkTemplates = allTemplates.filter(
         (t) =>
@@ -424,13 +439,16 @@ test.describe("editor core — cases 1-10", () => {
   });
 
   // ──────────────────────────────────────────────────────────────────────
-  // 9. The template dropdown lists exactly the templates the BE returned.
+  // 9. The template dropdown lists exactly the page templates the BE returned.
   //
   //   Logic:
   //     1. Boot and open the dropdown.
-  //     2. The number of rendered options equals the number of templates in
-  //        the live theme (allTemplates, captured in beforeAll) — one option
-  //        per template, including disabled/unhydrated ones.
+  //     2. The number of rendered options equals the number of NON-CHROME
+  //        templates in the live theme (pickerTemplates, captured in
+  //        beforeAll) — one option per page template, including disabled/
+  //        unhydrated ones. Header/footer chrome is hidden by the picker
+  //        (TemplateSwitchDropdown.tsx `isChromeTemplate`), so it is excluded
+  //        from the expected count.
   //     3. Escape closes the menu without changing the selection.
   //
   //   Why real-only: proves the dropdown reflects the merchant's real theme
@@ -440,15 +458,18 @@ test.describe("editor core — cases 1-10", () => {
     editor,
   }) => {
     await editor.open();
-    expect(allTemplates.length, "live theme has templates").toBeGreaterThan(1);
+    expect(
+      pickerTemplates.length,
+      "live theme has non-chrome page templates",
+    ).toBeGreaterThan(1);
 
     await editor.openDropdown();
     const options = editor.listbox.getByRole("option");
     await expect(options.first()).toBeVisible();
     expect(
       await options.count(),
-      "dropdown renders one option per live template",
-    ).toBe(allTemplates.length);
+      "dropdown renders one option per non-chrome page template",
+    ).toBe(pickerTemplates.length);
 
     const before = (await editor.templateTrigger.textContent())?.trim();
     await editor.closeDropdownWithEscape();

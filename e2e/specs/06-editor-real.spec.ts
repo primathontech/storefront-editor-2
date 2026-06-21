@@ -628,7 +628,7 @@ test.describe("editor real-platform — cases 71-81", () => {
   //
   //   Logic:
   //     1. Boot Home, select Hero. Edit autoplay → 9100.
-  //     2. Switch to Products (Default).
+  //     2. Switch to another live template (data-driven).
   //     3. Switch back to Home (Default).
   //     4. Re-select Hero. Autoplay reads the BE canonical, NOT 9100.
   // ──────────────────────────────────────────────────────────────────────
@@ -650,7 +650,7 @@ test.describe("editor real-platform — cases 71-81", () => {
     expect(sacrificial).not.toBe(original);
     await editor.setField("Autoplay interval (ms)", sacrificial);
 
-    await editor.switchTemplate("Products (Default)");
+    await editor.switchToOtherTemplate();
     await editor.switchTemplate("Home (Default)");
     await editor.waitForIframeReady();
     await editor.widgetTitle(heroId!).click();

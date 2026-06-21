@@ -37,6 +37,13 @@ test.describe.configure({ mode: "serial" });
 // SKIPPED — not failed — because there's nothing the editor can do about
 // an upstream outage. The preflight test below makes the cause explicit.
 const BE_URL = "https://visual-editor-be.primathontech.co.in";
+
+// Mirror of TemplateSwitchDropdown.tsx `isChromeTemplate`: header/footer
+// templates exist in the theme structure but the picker hides them (they're
+// edited inline on every page, not standalone). Cases that walk the dropdown
+// options must skip them.
+const CHROME_TYPES = new Set(["header", "footer"]);
+
 let backendUp = false;
 let storefrontUp = false;
 
@@ -68,10 +75,11 @@ test.describe("editor real-platform — cases 11-20", () => {
   //
   //   Logic:
   //     1. Boot the editor with real creds → default template is "Home".
-  //     2. Open the dropdown, pick "Products (Default)".
+  //     2. Open the dropdown, pick the first enabled non-Home template the
+  //        live theme offers (data-driven — see switchToOtherTemplate).
   //     3. The sidebar chrome heading (rendered from
-  //        themeStore.currentTemplate.name) must update to the new label.
-  //     4. Pick "Account (Default)" → heading flips again.
+  //        themeStore.currentTemplate.name) must update to that label.
+  //     4. Pick a second, different enabled template → heading flips again.
   //
   //   Why real-only: the chrome heading reflects the BE's actual
   //   template.name. A mock can prove "any string flows through", but the
@@ -83,11 +91,11 @@ test.describe("editor real-platform — cases 11-20", () => {
     await editor.open();
     await expect(editor.sidebarTitle(/home/i)).toBeVisible();
 
-    await editor.switchTemplate("Products (Default)");
-    await expect(editor.sidebarTitle("Products (Default)")).toBeVisible();
+    const first = await editor.switchToOtherTemplate();
+    await expect(editor.sidebarTitle(first)).toBeVisible();
 
-    await editor.switchTemplate("Account (Default)");
-    await expect(editor.sidebarTitle("Account (Default)")).toBeVisible();
+    const second = await editor.switchToOtherTemplate({ avoid: [first] });
+    await expect(editor.sidebarTitle(second)).toBeVisible();
   });
 
   // ──────────────────────────────────────────────────────────────────────
@@ -131,18 +139,25 @@ test.describe("editor real-platform — cases 11-20", () => {
     const data = json?.data ?? json;
     const structure =
       data?.templateStructure ?? data?.theme?.templateStructure ?? [];
-    const templates: Array<{ name: string; path?: string }> = [];
+    const templates: Array<{ name: string; path?: string; type?: string }> = [];
     for (const group of structure) {
       for (const t of group?.templates ?? []) {
-        templates.push({ name: t.name ?? t.id, path: t.routeContext?.path });
+        templates.push({
+          name: t.name ?? t.id,
+          path: t.routeContext?.path,
+          type: t.routeContext?.type ?? t.routeContext?.templateName,
+        });
       }
     }
     expect(templates.length, "theme exposes at least one template").toBeGreaterThan(0);
 
     await editor.openDropdown();
 
-    // Every option's UI state must mirror its real path shape.
+    // Every NON-CHROME option's UI state must mirror its real path shape.
+    // Header/footer chrome is hidden by the picker, so skip it here (it would
+    // never render an option — see TemplateSwitchDropdown.tsx).
     for (const t of templates) {
+      if (CHROME_TYPES.has(t.type ?? "")) continue;
       const unhydrated = isUnhydratedPath(t.path);
       const label = unhydrated ? `${t.name} — set sample params` : t.name;
       const option = editor.listbox.getByRole("option", {
@@ -205,7 +220,7 @@ test.describe("editor real-platform — cases 11-20", () => {
     await editor.sectionRow(firstSectionId).click();
     await expect(editor.settingsDrawer).toBeVisible();
 
-    await editor.switchTemplate("Products (Default)");
+    await editor.switchToOtherTemplate();
     await expect(editor.settingsDrawer).toBeHidden();
   });
 
@@ -220,8 +235,8 @@ test.describe("editor real-platform — cases 11-20", () => {
   //     depends on:
   //       1. Open Home → record the `data-testid` of the header section
   //          row (e.g. `section-header-section`).
-  //       2. Switch to Products → the SAME section id must be present.
-  //       3. Switch to Account → ditto.
+  //       2. Switch to another live template → the SAME section id present.
+  //       3. Switch to a second template → ditto.
   //     If the section id were per-template, an edit on Home could never
   //     "reflect" elsewhere. The identity check is the minimum invariant.
   //
@@ -236,18 +251,20 @@ test.describe("editor real-platform — cases 11-20", () => {
     const headerId = homeIds.find((id) => /header/i.test(id));
     expect(headerId, "dawn home pageConfig has a header section").toBeTruthy();
 
-    await editor.switchTemplate("Products (Default)");
-    const productIds = await editor.sectionIds();
+    const firstLabel = await editor.switchToOtherTemplate();
+    const firstIds = await editor.sectionIds();
     expect(
-      productIds,
-      "Products shares the same Header section id as Home",
+      firstIds,
+      `${firstLabel} shares the same Header section id as Home`,
     ).toContain(headerId);
 
-    await editor.switchTemplate("Account (Default)");
-    const accountIds = await editor.sectionIds();
+    const secondLabel = await editor.switchToOtherTemplate({
+      avoid: [firstLabel],
+    });
+    const secondIds = await editor.sectionIds();
     expect(
-      accountIds,
-      "Account shares the same Header section id as Home",
+      secondIds,
+      `${secondLabel} shares the same Header section id as Home`,
     ).toContain(headerId);
   });
 
@@ -361,8 +378,13 @@ test.describe("editor real-platform — cases 11-20", () => {
   //        b) A drag handle is present (Layout + Drag icons in
   //           `.dragHandle`; we anchor on the CSS module suffix that
   //           survives the build).
-  //        c) The visibility toggle button is present with aria-label
-  //           either "Hide section" or "Show section".
+  //        c) The visibility toggle ("Hide section"/"Show section") is
+  //           present for HIDEABLE body sections, and absent for pinned
+  //           chrome (header/announcement) — the editor only renders the
+  //           eye when `onToggleVisibility` is wired (SidebarSectionGroup
+  //           .tsx:135), which pinned sections don't get. Mirrors the same
+  //           header/announcement split the harness uses in
+  //           firstBodySectionId.
   //
   //   Why real-only: tests the actual sidebar against the real pageConfig
   //   data (widget names sourced from BE).
@@ -389,8 +411,19 @@ test.describe("editor real-platform — cases 11-20", () => {
       const dragHandle = row.locator('[class*="dragHandle"]');
       await expect(dragHandle, `row ${id} has a drag handle`).toBeVisible();
 
+      // Pinned chrome (header/announcement) can't be hidden, so the editor
+      // renders no eye toggle for it (SidebarSectionGroup.tsx:135). Hideable
+      // body sections must have one.
+      const isPinned = /header/i.test(id) || /announcement/i.test(id);
       const eye = row.getByRole("button", { name: /(Hide|Show) section/ });
-      await expect(eye, `row ${id} has a visibility toggle`).toBeVisible();
+      if (isPinned) {
+        await expect(
+          eye,
+          `pinned row ${id} has no visibility toggle`,
+        ).toHaveCount(0);
+      } else {
+        await expect(eye, `row ${id} has a visibility toggle`).toBeVisible();
+      }
     }
   });
 

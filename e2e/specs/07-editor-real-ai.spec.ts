@@ -2,18 +2,19 @@
 // (lines 112-127, QA Group A: AI-generated sections).
 //
 // AI ENDPOINT — DOCUMENTED EXCEPTION TO "NO MOCKS":
-//   The editor talks directly to https://api.anthropic.com/v1/messages
-//   (api.ts:399). Hitting the real endpoint in CI would:
+//   The editor sends AI generation through the visual-editor-be proxy
+//   (`POST /api/v1/ai/generate`, api.ts `anthropicMessages`); the BE injects
+//   the Anthropic key server-side and relays the Messages response verbatim.
+//   Hitting the real endpoint in CI would:
 //     • cost merchant quota per test (each test ≥ one LLM call),
 //     • be slow (5-20s per call),
 //     • produce non-deterministic HTML we couldn't reliably anchor on.
-//   So this spec INSTALLS A ROUTE-LEVEL STUB on the Anthropic endpoint
-//   in beforeEach, mirroring the same "documented exception" pattern
-//   case 67 uses for the failed-Save 500. Test 88-96 rely on the stub
-//   returning a deterministic HTML body; tests 82-87 + 97 are pure UI
-//   and don't trigger the LLM at all.
+//   So this spec INSTALLS A ROUTE-LEVEL STUB on the proxy endpoint,
+//   mirroring the same "documented exception" pattern case 67 uses for the
+//   failed-Save 500. Test 88-96 rely on the stub returning a deterministic
+//   HTML body; tests 82-87 + 97 are pure UI and don't trigger the LLM at all.
 //
-//   The stub returns Anthropic's response shape:
+//   The stub returns the relayed Anthropic response shape:
 //     { content: [{ type: "text", text: <JSON string> }] }
 //   where the JSON parses to { explanation: "...", html: "..." }.
 //   The HTML contains a unique sentinel string so the iframe-side
@@ -122,7 +123,7 @@ async function installAnthropicStub(
   htmlOverride?: string,
 ): Promise<void> {
   const html = htmlOverride ?? makeStubHtml(sentinel);
-  await page.route(/api\.anthropic\.com\/v1\/messages/, async (route) => {
+  await page.route(/\/api\/v1\/ai\/generate/, async (route) => {
     if (route.request().method() !== "POST") {
       await route.continue();
       return;
@@ -443,7 +444,7 @@ test.describe("editor real-platform — cases 82-97 (AI sections)", () => {
     const userPrompt = `e2e-user-prompt-${Date.now()}`;
     // Custom delayed stub for this case.
     await editor.page.route(
-      /api\.anthropic\.com\/v1\/messages/,
+      /\/api\/v1\/ai\/generate/,
       async (route) => {
         // Hold the response for 1.5s so the loading state is observable.
         await new Promise((r) => setTimeout(r, 1500));
@@ -581,7 +582,7 @@ test.describe("editor real-platform — cases 82-97 (AI sections)", () => {
     // second. Track count via a closure.
     let count = 0;
     await editor.page.route(
-      /api\.anthropic\.com\/v1\/messages/,
+      /\/api\/v1\/ai\/generate/,
       async (route) => {
         if (route.request().method() !== "POST") {
           await route.continue();
