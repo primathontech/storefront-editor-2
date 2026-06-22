@@ -156,6 +156,8 @@ export const useTemplateStore = create<TemplateStore>()(
   devtools(
     (set, get) => ({
       pageConfig: null,
+      hasUnsavedChanges: false,
+      activePreviewId: null,
       chromeBaseline: {},
       chromeConfigs: {},
 
