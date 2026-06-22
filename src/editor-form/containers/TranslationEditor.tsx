@@ -203,7 +203,7 @@ export default function TranslationEditor({
     const matches = sidebarRef.current.querySelectorAll<HTMLElement>(
       "[data-section-key]",
     );
-    for (const el of matches) {
+    for (const el of Array.from(matches)) {
       const key = el.getAttribute("data-section-key");
       if (key === focusedPath || key?.endsWith(`.${focusedPath}`)) {
         el.scrollIntoView({ behavior: "smooth", block: "nearest" });
