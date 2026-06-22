@@ -40,9 +40,6 @@ interface ApiEnvelope<T> {
   message?: string;
 }
 
-/** Environment tier a shareable preview is rendered against (preview doc §1). */
-export type PreviewEnv = "local" | "sandbox" | "production";
-
 /** Latest preview session for a template, as returned to the editor on load. */
 export interface LatestPreview {
   previewId: string;
@@ -313,8 +310,9 @@ export class EditorAPI {
     themeId: string;
     templateId: string;
     routeContext?: unknown;
-    env: PreviewEnv;
-    language: string;
+    /** Locale the snapshot was authored in. Optional — the backend stores it
+     *  but doesn't resolve by it; sent so it's recorded when available. */
+    language?: string;
     pageConfig: unknown;
     previewId?: string;
     /** Editor-only side-channel persisted on the preview row (e.g.
