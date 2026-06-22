@@ -29,6 +29,7 @@ export const Editor = ({
 }: EditorProps) => (
   <RightSidebarWidthProvider>
     <div
+      data-testid="editor-root"
       className="grid h-screen overflow-hidden bg-editor-canvas"
       style={{
         // minmax(0, 1fr) — NOT bare 1fr. A 1fr row is minmax(auto, 1fr),
@@ -70,7 +71,11 @@ export const Editor = ({
         {preview}
       </main>
       {rightSidebar && (
-        <div className="min-w-0" style={{ gridArea: "rightSidebar" }}>
+        <div
+          data-testid="settings-drawer"
+          className="min-w-0"
+          style={{ gridArea: "rightSidebar" }}
+        >
           {rightSidebar}
         </div>
       )}

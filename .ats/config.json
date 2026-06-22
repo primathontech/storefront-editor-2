@@ -1,0 +1,64 @@
+{
+  "version": "2.1",
+  "scope": "apps/visual-editor",
+  "sourceGlobs": ["src/**/*.ts", "src/**/*.tsx"],
+  "excludePatterns": [
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/*.d.ts",
+    "**/index.ts",
+    "**/__tests__/**",
+    "**/node_modules/**"
+  ],
+  "sideEffectSignals": [
+    "Date.now",
+    "Date(",
+    "Math.random",
+    "process.env",
+    "crypto.",
+    "fetch(",
+    "console.",
+    "localStorage",
+    "sessionStorage",
+    "window.",
+    "document.",
+    "Intl.",
+    "toLocaleString",
+    "toFixed(",
+    "setTimeout",
+    "setInterval",
+    "addEventListener"
+  ],
+  "reactSignals": [
+    "useEffect",
+    "useState",
+    "useRef",
+    "useCallback",
+    "useMemo",
+    "useContext",
+    "from 'react'",
+    "from \"react\"",
+    "React."
+  ],
+  "storeSignals": [
+    "from 'zustand'",
+    "from \"zustand\"",
+    "create<",
+    "create("
+  ],
+  "confidenceThresholds": {
+    "AUTOMATE": 80,
+    "ASSIST_REACT": 40,
+    "ASSIST": 40,
+    "MANUAL": 0
+  },
+  "batchSize": 5,
+  "maxAutoFixAttempts": 2,
+  "mockMapping": {
+    "localStorage": { "mock": "installStorageMocks()", "from": "@shopkit/test-utils" },
+    "sessionStorage": { "mock": "installStorageMocks()", "from": "@shopkit/test-utils" },
+    "@shopkit/editor-bridge": { "mock": "vi.mock(\"@shopkit/editor-bridge\")", "note": "createChannel — stub the channel; the editor side never POSTs" },
+    "@shopkit/i18n": { "mock": "real (pure TranslationService)", "note": "no network — safe to use the real class" },
+    "xstate": { "mock": "createActor() with .provide()-d stub actors", "note": "drive machines with stubbed actors/guards" }
+  }
+}
