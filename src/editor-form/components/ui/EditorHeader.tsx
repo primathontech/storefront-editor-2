@@ -1,6 +1,5 @@
 import { Button } from "./design-system";
 import styles from "./EditorHeader.module.css";
-import { EditIcon } from "./icons/EditIcon";
 import { HeaderMobileIcon } from "./icons/HeaderMobileIcon";
 import { HeaderMonitorIcon } from "./icons/HeaderMonitorIcon";
 import { HeaderStackedIcon } from "./icons/HeaderStackedIcon";
@@ -23,11 +22,24 @@ interface EditorHeaderProps {
   onSwitchTemplate: (template: ThemeStructureTemplate) => void;
   device: Device;
   setDevice: (d: Device) => void;
-  mode: Mode;
-  setMode: (m: Mode) => void;
+  // Vestigial: the old edit/preview mode toggle was replaced by the
+  // shareable-preview button below. Kept optional for back-compat with
+  // callers that still pass them; no longer rendered.
+  mode?: Mode;
+  setMode?: (m: Mode) => void;
   saveStatus: SaveStatus;
   saveDisabled: boolean;
   onSave: () => void;
+  // Shareable-preview action. When `onPreview` is provided the button fires
+  // it — creating a preview snapshot via the backend. Lanes that don't pass
+  // `onPreview` (e.g. the static-template lane, where shareable preview isn't
+  // built yet) render the SAME button but disabled. `previewDisabled` gates
+  // it on having unsaved edits for lanes that do support it.
+  onPreview?: () => void;
+  previewDisabled?: boolean;
+  previewLoading?: boolean;
+  // Tooltip shown when the preview button is disabled at rest.
+  previewDisabledReason?: string;
 }
 
 const DEVICES = [
@@ -37,23 +49,26 @@ const DEVICES = [
   { id: "fullscreen", label: "Fullscreen", Icon: HeaderStackedIcon },
 ] as const;
 
+// The primary action publishes the draft to the live (production) template.
 const SAVE_LABEL: Record<SaveStatus, string> = {
-  idle: "Save",
+  idle: "Publish",
   validating: "Validating…",
-  saving: "Saving…",
-  saved: "Saved",
-  failed: "Retry save",
+  saving: "Publishing…",
+  saved: "Published",
+  failed: "Retry publish",
 };
 
 const EditorHeader: React.FC<EditorHeaderProps> = ({
   onSwitchTemplate,
   device,
   setDevice,
-  mode,
-  setMode,
   saveStatus,
   saveDisabled,
   onSave,
+  onPreview,
+  previewDisabled = false,
+  previewLoading = false,
+  previewDisabledReason = "Make a change to save a preview",
 }) => {
   const theme = useThemeStore((s) => s.theme);
   const isSaving = saveStatus === "validating" || saveStatus === "saving";
@@ -91,22 +106,37 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
           ))}
         </div>
         <div className={styles["action-buttons-container"]}>
-          <Button
-            variant="secondary"
-            size="md"
-            leftIcon={mode === "preview" ? <EditIcon /> : <PreviewIcon />}
-            onClick={() => setMode(mode === "preview" ? "edit" : "preview")}
-            style={{ width: "122px" }}
+          {/* Shareable-preview button — same in every lane. Disabled when a
+              lane doesn't support it yet (no onPreview, e.g. static pages) or
+              when there's nothing new to preview. span carries the hint: a
+              native title doesn't show on a disabled <button>. */}
+          <span
+            title={
+              (previewDisabled || !onPreview) && !previewLoading
+                ? previewDisabledReason
+                : undefined
+            }
+            style={{ display: "inline-flex" }}
           >
-            {mode === "preview" ? "Edit" : "Preview"}
-          </Button>
+            <Button
+              variant="secondary"
+              size="md"
+              leftIcon={<PreviewIcon />}
+              onClick={onPreview}
+              disabled={previewDisabled || !onPreview}
+              loading={previewLoading}
+              title="Save a draft and open a shareable preview"
+            >
+              {previewLoading ? "Saving…" : "Save and Preview"}
+            </Button>
+          </span>
 
           {/* span carries the hint: a native title doesn't show on a
               disabled <button>. Only set when Save is disabled at rest. */}
           <span
             title={
               saveDisabled && saveStatus === "idle"
-                ? "No changes to save"
+                ? "Nothing to publish"
                 : undefined
             }
             style={{ display: "inline-flex" }}
@@ -118,7 +148,9 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
               disabled={saveDisabled}
               loading={isSaving}
               title={
-                saveStatus === "failed" ? "Last save failed" : "Save changes"
+                saveStatus === "failed"
+                  ? "Last publish failed"
+                  : "Publish to live"
               }
               style={{ minWidth: "100px" }}
             >
