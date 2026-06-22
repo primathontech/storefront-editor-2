@@ -29,9 +29,36 @@ export function isUnhydratedPath(path: string | undefined): boolean {
 export function buildPreviewUrl(
   origin: string,
   path: string | undefined,
+  draft?: { previewId?: string | null; version?: number | null },
 ): string {
   const safePath = isUnhydratedPath(path) ? "/" : path || "/";
-  return `${origin}${safePath}?editor=true`;
+  const params = new URLSearchParams({ editor: "true" });
+  // When a "Save and Preview" draft exists, ask the storefront to resolve it
+  // for the INITIAL render so the iframe shows the draft directly instead of
+  // flashing the live (published) page first. The middleware forwards this as
+  // the preview header for ?editor=true requests only (transient, no cookies);
+  // the editor-bridge then drives subsequent live edits via ?previewKey.
+  if (draft?.previewId) {
+    params.set("editorPreview", "true");
+    params.set("previewId", draft.previewId);
+    if (draft.version != null) params.set("version", String(draft.version));
+  }
+  return `${origin}${safePath}?${params.toString()}`;
+}
+
+export function rebasePreviewUrl(
+  backendUrl: string,
+  previewOrigin: string,
+): string {
+  const origin = previewOrigin.replace(/\/+$/, "");
+  // Drop scheme, then the host segment (everything up to the first "/" or "?"),
+  let rest = (backendUrl || "")
+    .replace(/^[a-z][a-z0-9+.-]*:\/\//i, "")
+    .replace(/^[^/?]*/, "");
+  // Query-only ("?…") and a bare "/" both mean "no path" — strip the leading
+  if (rest.startsWith("/?")) rest = rest.slice(1);
+  else if (rest === "/") rest = "";
+  return `${origin}${rest}`;
 }
 
 /**
