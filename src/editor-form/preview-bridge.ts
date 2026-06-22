@@ -8,6 +8,7 @@ import {
   type WidgetRegistry,
 } from "@shopkit/editor-bridge";
 import type { TranslationService } from "@shopkit/i18n";
+import { resolveSectionSettings } from "./utils/translation-utils";
 
 /**
  * Editor-side of the dynamic-lane bridge. Pure transport over
@@ -174,19 +175,13 @@ export function commitServer(pageConfig: unknown): void {
     // rendered by the layout, not the page body — drop them so the preview
     // doesn't double-render them. No-op on pages without chrome.
     const bodySections = pc.sections.filter((s) => !s._chromeTemplateId);
-    // Pre-resolve t:-refs in every widget's settings so the iframe-side
-    // render doesn't need a translations fetch — see momsco's
-    // readEditorPreviewState consumer which skips translations when
-    // previewPageConfig is non-null.
+    // Pre-resolve t:-refs in every widget's settings (shared with the saved
+    // preview's handlePreview) so the iframe-side render needs no translations
+    // fetch — see momsco's readEditorPreviewState consumer which skips
+    // translations when previewPageConfig is non-null.
     const resolved = {
       ...pc,
-      sections: bodySections.map((section) => ({
-        ...section,
-        widgets: section.widgets.map((widget) => ({
-          ...widget,
-          settings: ts.translateObject(widget.settings || {}),
-        })),
-      })),
+      sections: resolveSectionSettings(bodySections, ts),
     };
     args.onCommitFired();
     channel.send("applyConfig", { pageConfig: resolved });
