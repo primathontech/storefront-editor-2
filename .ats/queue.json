@@ -1,0 +1,2058 @@
+{
+  "version": "2.1",
+  "scope": "apps/visual-editor",
+  "generatedBy": "/ats-analyze",
+  "items": [
+    {
+      "file": "src/editor-form/utils/translation-utils.ts",
+      "automationLevel": "AUTOMATE",
+      "confidence": 85,
+      "priority": 19.98,
+      "status": "done",
+      "sourceHash": "d3e2fac485b7",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 18,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "setValueByPath",
+        "deepMerge",
+        "flattenPaths",
+        "processSectionWidgets",
+        "createSectionTranslations",
+        "buildTranslationService",
+        "isTranslationKey",
+        "getTranslationPath",
+        "createTranslationKey"
+      ],
+      "loc": 198,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/preview-bridge.ts",
+      "automationLevel": "ASSIST",
+      "confidence": 45,
+      "priority": 13.83,
+      "status": "done",
+      "sourceHash": "401d2b5e3973",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 12,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "registerPreviewBridge",
+        "unregisterPreviewBridge",
+        "commitClientWidget",
+        "commitClientSection",
+        "focusSection",
+        "commitServer"
+      ],
+      "loc": 183,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/translation-preview-bridge.ts",
+      "automationLevel": "ASSIST",
+      "confidence": 60,
+      "priority": 11.12,
+      "status": "done",
+      "sourceHash": "317971cf3872",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 6,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "registerTranslationBridge",
+        "unregisterTranslationBridge",
+        "commitTranslationPatch",
+        "flushTranslationPatch",
+        "focusTranslationKey"
+      ],
+      "loc": 112,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/stores/templateStore.ts",
+      "automationLevel": "MANUAL",
+      "confidence": 0,
+      "priority": 9.71,
+      "status": "done",
+      "sourceHash": "25060723e574",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": false,
+        "isStore": true,
+        "branchCount": 49,
+        "hasDomainMaps": true,
+        "hasExternalLibs": true,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "useTemplateStore"
+      ],
+      "loc": 771,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/utils/preview-route.ts",
+      "automationLevel": "AUTOMATE",
+      "confidence": 100,
+      "priority": 6.57,
+      "status": "done",
+      "sourceHash": "d6bf2152c5ab",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 2,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "isUnhydratedPath",
+        "buildPreviewUrl",
+        "buildStaticPreviewUrl"
+      ],
+      "loc": 57,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/useImageAttachment.tsx",
+      "automationLevel": "MANUAL",
+      "confidence": 10,
+      "priority": 6.53,
+      "status": "done",
+      "sourceHash": "d1d4448dbcfa",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 10,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "handleImageValidationError",
+        "useImageAttachment"
+      ],
+      "loc": 253,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/DynamicForm.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 5.68,
+      "status": "pending",
+      "sourceHash": "59d9c1460830",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 40,
+        "hasDomainMaps": true,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 568,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/HtmlInput.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 5.31,
+      "status": "pending",
+      "sourceHash": "c9057d787ab7",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 37,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 531,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/containers/TranslationEditor.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 4.87,
+      "status": "pending",
+      "sourceHash": "6a39108f492a",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 42,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 487,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/context/RightSidebarWidthContext.tsx",
+      "automationLevel": "ASSIST_REACT",
+      "confidence": 65,
+      "priority": 4.23,
+      "status": "done",
+      "sourceHash": "79aecee5db68",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "RightSidebarWidthProvider",
+        "useRightSidebarWidth"
+      ],
+      "loc": 23,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/machines/templateSession/machine.ts",
+      "automationLevel": "AUTOMATE",
+      "confidence": 85,
+      "priority": 4.12,
+      "status": "done",
+      "sourceHash": "0d7df5c2d694",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 1,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "templateSessionMachine"
+      ],
+      "loc": 212,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/dropdown/Dropdown.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 3.93,
+      "status": "pending",
+      "sourceHash": "44a805f9597b",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 22,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 393,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/services/api.ts",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 3.88,
+      "status": "pending",
+      "sourceHash": "425bb45745da",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": false,
+        "isStore": true,
+        "branchCount": 23,
+        "hasDomainMaps": true,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 388,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/machines/translationSession/machine.ts",
+      "automationLevel": "AUTOMATE",
+      "confidence": 85,
+      "priority": 3.38,
+      "status": "done",
+      "sourceHash": "b9e0877b6eff",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "translationSessionMachine"
+      ],
+      "loc": 138,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/ObjectArrayInput.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 3.31,
+      "status": "pending",
+      "sourceHash": "5dd4a8065572",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 20,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 331,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/utils/htmlValidation.ts",
+      "automationLevel": "ASSIST",
+      "confidence": 45,
+      "priority": 3.19,
+      "status": "done",
+      "sourceHash": "554499a417fe",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 9,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "validateHtmlContent"
+      ],
+      "loc": 119,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/models/chat-types.ts",
+      "automationLevel": "ASSIST",
+      "confidence": 60,
+      "priority": 3.07,
+      "status": "done",
+      "sourceHash": "13ab3f931a62",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 1,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "createConversation"
+      ],
+      "loc": 107,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/containers/TemplateEditor.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 3.02,
+      "status": "pending",
+      "sourceHash": "e6e46562b2b5",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 23,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 302,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/stores/translationStore.ts",
+      "automationLevel": "MANUAL",
+      "confidence": 15,
+      "priority": 3.01,
+      "status": "done",
+      "sourceHash": "82c10d79133a",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": true,
+        "branchCount": 3,
+        "hasDomainMaps": true,
+        "hasExternalLibs": true,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "useTranslationStore"
+      ],
+      "loc": 101,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/machines/themeSession/machine.ts",
+      "automationLevel": "AUTOMATE",
+      "confidence": 85,
+      "priority": 2.89,
+      "status": "done",
+      "sourceHash": "46ddee70ee07",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "themeSessionMachine"
+      ],
+      "loc": 89,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/machines/appBoot/machine.ts",
+      "automationLevel": "AUTOMATE",
+      "confidence": 85,
+      "priority": 2.82,
+      "status": "done",
+      "sourceHash": "a7c752f7d560",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "appBootMachine"
+      ],
+      "loc": 82,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/design-system/Dropdown/Dropdown.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 2.8,
+      "status": "pending",
+      "sourceHash": "acf3e9fad0cf",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 17,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 280,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/Editor.tsx",
+      "automationLevel": "ASSIST_REACT",
+      "confidence": 65,
+      "priority": 2.75,
+      "status": "done",
+      "sourceHash": "0880deaa74bc",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 2,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "Editor"
+      ],
+      "loc": 75,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/stores/themeStore.ts",
+      "automationLevel": "MANUAL",
+      "confidence": 35,
+      "priority": 2.71,
+      "status": "done",
+      "sourceHash": "178316d21e39",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": true,
+        "branchCount": 4,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "useThemeStore"
+      ],
+      "loc": 71,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/ArrayInput.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 2.66,
+      "status": "pending",
+      "sourceHash": "63daff161511",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 17,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 266,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/hooks/useMediaSelector.ts",
+      "automationLevel": "MANUAL",
+      "confidence": 25,
+      "priority": 2.59,
+      "status": "done",
+      "sourceHash": "05faf08bce9d",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 4,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "useMediaSelector"
+      ],
+      "loc": 59,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/SectionLibraryDialog.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 2.51,
+      "status": "pending",
+      "sourceHash": "faf45f3a996d",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 13,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 251,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/SettingsSidebar.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 2.51,
+      "status": "pending",
+      "sourceHash": "531e563d84cb",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 14,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 251,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/useAnimatedPlaceholder.ts",
+      "automationLevel": "MANUAL",
+      "confidence": 25,
+      "priority": 2.48,
+      "status": "done",
+      "sourceHash": "875ac2769c4a",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 6,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "useAnimatedPlaceholder"
+      ],
+      "loc": 48,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/components/SidebarChrome.tsx",
+      "automationLevel": "ASSIST_REACT",
+      "confidence": 65,
+      "priority": 2.4,
+      "status": "done",
+      "sourceHash": "750445dd5851",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 1,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "SidebarChrome"
+      ],
+      "loc": 40,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/components/FullPageMessage.tsx",
+      "automationLevel": "ASSIST_REACT",
+      "confidence": 65,
+      "priority": 2.39,
+      "status": "done",
+      "sourceHash": "f454ffe9204e",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "FullPageMessage"
+      ],
+      "loc": 39,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/utils/ai-utils.ts",
+      "automationLevel": "AUTOMATE",
+      "confidence": 100,
+      "priority": 2.36,
+      "status": "done",
+      "sourceHash": "acf10af22f25",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 3,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "readFileAsBase64"
+      ],
+      "loc": 36,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/utils/schema-converter.ts",
+      "automationLevel": "AUTOMATE",
+      "confidence": 100,
+      "priority": 2.33,
+      "status": "done",
+      "sourceHash": "9da7be542c1f",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "convertSchemaToFormSchema"
+      ],
+      "loc": 33,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/components/PreviewMessage.tsx",
+      "automationLevel": "ASSIST_REACT",
+      "confidence": 65,
+      "priority": 2.29,
+      "status": "done",
+      "sourceHash": "fe8ff86edc4c",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "PreviewMessage"
+      ],
+      "loc": 29,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/stores/editorUiStore.ts",
+      "automationLevel": "MANUAL",
+      "confidence": 35,
+      "priority": 2.26,
+      "status": "done",
+      "sourceHash": "6637084ab634",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": true,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "useEditorUiStore"
+      ],
+      "loc": 26,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/stores/authStore.ts",
+      "automationLevel": "MANUAL",
+      "confidence": 35,
+      "priority": 2.24,
+      "status": "done",
+      "sourceHash": "ff45e1ef01d8",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": true,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "useAuthStore"
+      ],
+      "loc": 24,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/BuilderToolbar.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 2.23,
+      "status": "pending",
+      "sourceHash": "456badc8ab74",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 12,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 223,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/services/chat/llm-client.ts",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 2.23,
+      "status": "pending",
+      "sourceHash": "3932490ece80",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 17,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 223,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/RemoveSectionButton.tsx",
+      "automationLevel": "ASSIST_REACT",
+      "confidence": 65,
+      "priority": 2.19,
+      "status": "done",
+      "sourceHash": "3e6430dc5d61",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "RemoveSectionButton"
+      ],
+      "loc": 19,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/components/SidebarSkeleton.tsx",
+      "automationLevel": "ASSIST_REACT",
+      "confidence": 65,
+      "priority": 2.12,
+      "status": "done",
+      "sourceHash": "5bcf70c8641d",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "SidebarSkeleton"
+      ],
+      "loc": 12,
+      "hasExistingTest": true,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/utils/utils.ts",
+      "automationLevel": "AUTOMATE",
+      "confidence": 85,
+      "priority": 2.11,
+      "status": "done",
+      "sourceHash": "593d3a9d5634",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": false
+      },
+      "exportedFunctions": [
+        "cn"
+      ],
+      "loc": 11,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/FAQInput.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 2.0,
+      "status": "pending",
+      "sourceHash": "2f973c1c9a1d",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 11,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 200,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/design-system/Switch/Switch.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 1.94,
+      "status": "pending",
+      "sourceHash": "2a3160872969",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 17,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 194,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/RichTextInput.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 1.93,
+      "status": "pending",
+      "sourceHash": "9f4668e5201d",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 6,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 193,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/Sidebar.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 1.67,
+      "status": "pending",
+      "sourceHash": "27ea8302c740",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 3,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 167,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/ResponsiveSpacingInput.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 1.6,
+      "status": "pending",
+      "sourceHash": "da7b389f716a",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 12,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 160,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/GenerateDialog.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 1.56,
+      "status": "pending",
+      "sourceHash": "a485239d34c9",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 4,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 156,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/design-system/Input/Input.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 1.56,
+      "status": "pending",
+      "sourceHash": "0bb001a3e63a",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 2,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 156,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/SidebarSectionGroup.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 1.53,
+      "status": "pending",
+      "sourceHash": "443bbf22f191",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 8,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 153,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/design-system/SpacingFields/SpacingFields.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 1.51,
+      "status": "pending",
+      "sourceHash": "dfc1fd06135f",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 4,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 151,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/design-system/Modal/Modal.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 1.49,
+      "status": "pending",
+      "sourceHash": "db05b96eec03",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 3,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 149,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/services/chat/chat-service.ts",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 1.26,
+      "status": "pending",
+      "sourceHash": "77bb74a15956",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 7,
+        "hasDomainMaps": true,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 126,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/App.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 1.22,
+      "status": "pending",
+      "sourceHash": "e9d097a472dc",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 12,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 122,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/EditorHeader.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 1.22,
+      "status": "pending",
+      "sourceHash": "5de6171566dd",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 5,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 122,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/MediaInput.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 1.22,
+      "status": "pending",
+      "sourceHash": "a63b2b67456e",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 4,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 122,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/Dialog.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.97,
+      "status": "pending",
+      "sourceHash": "29aa184544e1",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 6,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 97,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/design-system/Button/Button.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.94,
+      "status": "pending",
+      "sourceHash": "ad7b81d8c600",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 94,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/ThemeSession.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.91,
+      "status": "pending",
+      "sourceHash": "cd892277bfae",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 9,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 91,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/icons/VisibilityIcon.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.79,
+      "status": "pending",
+      "sourceHash": "f27e9cdd3a98",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 79,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/design-system/IconButton/IconButton.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.77,
+      "status": "pending",
+      "sourceHash": "221030cc8e41",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 2,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 77,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/TemplateSwitchDropdown.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.76,
+      "status": "pending",
+      "sourceHash": "bd29a4666e6c",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 8,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 76,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/schemas/section-registry.ts",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.72,
+      "status": "pending",
+      "sourceHash": "97521cb954c3",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 72,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/design-system/Sidebar/Sidebar.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.69,
+      "status": "pending",
+      "sourceHash": "250aee2ca320",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 4,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 69,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/services/chat/conversation-repository.ts",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.63,
+      "status": "pending",
+      "sourceHash": "7c08c9e0a606",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 9,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 63,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/HtmlEditor.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.58,
+      "status": "pending",
+      "sourceHash": "69a0efcdca8a",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 2,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 58,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/services/html-ai-prompt.ts",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.56,
+      "status": "pending",
+      "sourceHash": "95a85ecb9fef",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 4,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 56,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/types.ts",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.5,
+      "status": "pending",
+      "sourceHash": "5e07c8ea665f",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 50,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/design-system/Badge/Badge.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.49,
+      "status": "pending",
+      "sourceHash": "db48a2cade3b",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 49,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/icons/HeaderStackedIcon.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.45,
+      "status": "pending",
+      "sourceHash": "66265ad76dd0",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 45,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/utils/next-dynamic-shim.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.44,
+      "status": "pending",
+      "sourceHash": "4eb81649502a",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 2,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 44,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/icons/PreviewIcon.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.41,
+      "status": "pending",
+      "sourceHash": "7b72010d2afe",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 41,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/PromptTextarea.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.4,
+      "status": "pending",
+      "sourceHash": "aafcfd975669",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 1,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 40,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/utils/preview-frame-style.ts",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.4,
+      "status": "pending",
+      "sourceHash": "034360f26fea",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 40,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/icons/HeaderHomeIcon.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.39,
+      "status": "pending",
+      "sourceHash": "4c0995d11448",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 39,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/icons/LayoutIcon.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.38,
+      "status": "pending",
+      "sourceHash": "f09f89159c2d",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 38,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/icons/AddCircleIcon.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.37,
+      "status": "pending",
+      "sourceHash": "badaab7f2732",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 37,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/icons/EditIcon.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.37,
+      "status": "pending",
+      "sourceHash": "705ebad50f4e",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 37,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/icons/HeaderTabletIcon.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.37,
+      "status": "pending",
+      "sourceHash": "7e7b4dcf32c3",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 37,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/icons/TrashIcon.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.37,
+      "status": "pending",
+      "sourceHash": "6f6d7146e2d4",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 37,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/icons/HtmlErrorIcon.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.36,
+      "status": "pending",
+      "sourceHash": "d1edbb8119a5",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 36,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/icons/CloseIcon.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.35,
+      "status": "pending",
+      "sourceHash": "d8551e7946d2",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 35,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/icons/HeaderMobileIcon.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.35,
+      "status": "pending",
+      "sourceHash": "fb486e4a0562",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 35,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/icons/HeaderMonitorIcon.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.33,
+      "status": "pending",
+      "sourceHash": "8c9845af18e0",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 33,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/icons/ChevronDownIcon.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.31,
+      "status": "pending",
+      "sourceHash": "718bf84e7232",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 31,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/icons/ChevronUpIcon.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.31,
+      "status": "pending",
+      "sourceHash": "b47fd3cde631",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 31,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/icons/MediaIcon.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.24,
+      "status": "pending",
+      "sourceHash": "f49b364379dd",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 24,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/components/ui/icons/DragDotsIcon.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.23,
+      "status": "pending",
+      "sourceHash": "319a05c91ed5",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 23,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/machines/appBoot/types.ts",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.2,
+      "status": "pending",
+      "sourceHash": "89d4dd1fd24c",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 20,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/machines/themeSession/types.ts",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.2,
+      "status": "pending",
+      "sourceHash": "77b31a086eeb",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 20,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/machines/appBoot/errors.ts",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.16,
+      "status": "pending",
+      "sourceHash": "74b5040996a4",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 16,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/machines/templateSession/types.ts",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.14,
+      "status": "pending",
+      "sourceHash": "95867cd26d77",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 14,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/editor-form/schemas/section-types.ts",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.12,
+      "status": "pending",
+      "sourceHash": "28501a6f0119",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 12,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/machines/translationSession/types.ts",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.12,
+      "status": "pending",
+      "sourceHash": "2efc5568a6a6",
+      "signals": {
+        "hasSideEffects": false,
+        "isReact": false,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": false,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 12,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    },
+    {
+      "file": "src/main.tsx",
+      "automationLevel": "SKIP",
+      "confidence": 0,
+      "priority": 0.11,
+      "status": "pending",
+      "sourceHash": "6e9e5807fcbd",
+      "signals": {
+        "hasSideEffects": true,
+        "isReact": true,
+        "isStore": false,
+        "branchCount": 0,
+        "hasDomainMaps": false,
+        "hasExternalLibs": true,
+        "isTypeOnly": true
+      },
+      "exportedFunctions": [],
+      "loc": 11,
+      "hasExistingTest": false,
+      "existingTestPath": null
+    }
+  ]
+}
