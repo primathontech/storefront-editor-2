@@ -432,12 +432,13 @@ export default function TemplateEditor({
                 src={previewUrl}
                 style={RESPONSIVE_FRAME_STYLE[device]}
                 title="preview"
+                data-testid="preview-iframe"
                 // dev/QA only (VITE_ALLOW_PREVIEW_ORIGIN_OVERRIDE): when the
                 // editor previews an http://localhost store, the HTTPS→http
                 // downgrade strips the referrer under the default policy, so the
                 // iframe-side bridge gate (resolveEditorOrigin) can't identify
                 // the editor. `origin` survives the downgrade and sends only the
-                // origin (no token leak). Prod keeps the secure default.
+                // origin (no token leak). Prod keeps the secure default. 
                 referrerPolicy={
                   import.meta.env.VITE_ALLOW_PREVIEW_ORIGIN_OVERRIDE === "true"
                     ? "origin"
