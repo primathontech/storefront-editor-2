@@ -15,6 +15,7 @@ import styles from "./DynamicForm.module.css";
 import { FAQInput } from "./FAQInput";
 import { HtmlInput } from "./HtmlInput";
 import { MediaInput } from "./MediaInput";
+import { MenuSelectInput } from "./MenuSelectInput";
 import { ObjectArrayInput } from "./ObjectArrayInput";
 import { ResponsiveSpacingInput } from "./ResponsiveSpacingInput";
 import { RichTextInput } from "./RichTextInput";
@@ -24,6 +25,7 @@ export interface FormFieldSchema {
     | "text"
     | "number"
     | "select"
+    | "menu-select"
     | "boolean"
     | "spacing"
     | "image"
@@ -171,6 +173,21 @@ const DynamicForm = React.forwardRef<HTMLDivElement, DynamicFormProps>(
                 onChange={handleChange}
                 disabled={fieldDisabled}
                 fullWidth
+              />
+            </FieldWrapper>
+          );
+
+        case "menu-select":
+          return (
+            <FieldWrapper
+              fieldHelperText={fieldHelperText}
+              fieldError={fieldError}
+            >
+              <MenuSelectInput
+                label={fieldLabel}
+                value={value}
+                onChange={handleChange}
+                disabled={fieldDisabled}
               />
             </FieldWrapper>
           );

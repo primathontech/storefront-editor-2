@@ -40,6 +40,28 @@ interface ApiEnvelope<T> {
   message?: string;
 }
 
+/** Environment tier a shareable preview is rendered against (preview doc §1). */
+export type PreviewEnv = "local" | "sandbox" | "production";
+
+/** Latest preview session for a template, as returned to the editor on load. */
+export interface LatestPreview {
+  previewId: string;
+  version: number;
+  pageConfig: unknown;
+  /** Editor-only side-channel persisted on the preview row:
+   *  - rawPageConfig: the unresolved (t:-ref) config used to resume editing
+   *    without baking literals into the template.
+   *  - translations: the draft common/template translations at save time, so
+   *    reload restores t:-backed edits (logo, nav text, …) instead of live. */
+  metadata?: {
+    rawPageConfig?: unknown;
+    translations?: {
+      common?: Record<string, unknown>;
+      template?: Record<string, unknown>;
+    };
+  } | null;
+}
+
 /**
  * Shape of `GET /api/v1/themes/{themeId}`. The BE wraps the theme inside
  * `data.theme` (not just `data`), so the typed envelope captures that
@@ -275,6 +297,98 @@ export class EditorAPI {
     );
   }
 
+  // -- Preview (shareable preview links) ----------------------------------
+
+  /**
+   * Create a shareable preview snapshot of the merchant's in-progress
+   * (unsaved) template state. `POST /api/v1/getPreviewLink` with the full
+   * payload the preview doc §4.1 calls out — `themeId` rides in the body (the
+   * doc's REST path carried it; this endpoint flattens it).
+   *
+   * The backend saves the snapshot versioned (new previewId → v1; passing an
+   * existing `previewId` adds the next version) and returns the shareable URL
+   * (merchant origin + `?editorPreview=true&previewId=…&version=…`).
+   */
+  static async getPreviewLink(body: {
+    themeId: string;
+    templateId: string;
+    routeContext?: unknown;
+    env: PreviewEnv;
+    language: string;
+    pageConfig: unknown;
+    previewId?: string;
+    /** Editor-only side-channel persisted on the preview row (e.g.
+     *  { rawPageConfig } — the unresolved config for resume). */
+    metadata?: unknown;
+  }): Promise<{
+    previewId: string;
+    version: number;
+    url: string;
+    expiresAt: string | null;
+  }> {
+    const json = await editorBe
+      .post("api/v1/getPreviewLink", { json: body })
+      .json<
+        ApiEnvelope<{
+          previewId: string;
+          version: number;
+          url: string;
+          expiresAt: string | null;
+        }>
+      >();
+    if (!json?.data?.previewId || !json?.data?.url) {
+      throw new Error("Preview response missing data.previewId/url");
+    }
+    return json.data;
+  }
+
+  /**
+   * Latest preview session for a template (id + version + pageConfig), or null
+   * if none exists. Used at boot to resume the last "Save and Preview" draft
+   * instead of the published/live template — and to re-bind its previewId so
+   * further saves add versions to the same session. Tolerant: any failure →
+   * null (caller falls back to the live template).
+   */
+  static async getLatestPreview(
+    themeId: string,
+    templateId: string
+  ): Promise<LatestPreview | null> {
+    try {
+      const json = await editorBe
+        .get("api/v1/getPreviewLink", { searchParams: { themeId, templateId } })
+        .json<ApiEnvelope<LatestPreview>>();
+      const d = json?.data;
+      if (!d?.previewId || !d?.pageConfig) return null;
+      return {
+        previewId: d.previewId,
+        version: d.version,
+        pageConfig: d.pageConfig,
+        metadata: d.metadata ?? null,
+      };
+    } catch {
+      // 404 (no draft yet) or any error — fall back to the live template.
+      return null;
+    }
+  }
+
+  /** Purge a preview session by id (all templates + versions under it). */
+  static async deletePreview(previewId: string): Promise<void> {
+    await editorBe.delete(
+      `api/v1/getPreviewLink/${encodeURIComponent(previewId)}`
+    );
+  }
+
+  /**
+   * Purge ALL preview data for a merchant (its single preview session across
+   * every template). Called on publish — the merchant's whole preview is
+   * cleared and the next edit mints a fresh previewId.
+   */
+  static async deleteMerchantPreviews(themeId: string): Promise<void> {
+    await editorBe.delete("api/v1/getPreviewLink", {
+      searchParams: { themeId },
+    });
+  }
+
   // -- Auth / data-source / AI proxies (storefront-hosted today) ----------
 
   /**
@@ -326,6 +440,33 @@ export class EditorAPI {
         previewOrigin: pickPreviewOrigin(d.url),
       },
     };
+  }
+
+  /**
+   * Menu picker options — the merchant's published nav menus as
+   * `{ value: handle, label: title }` for the Header/Footer `menuHandle`
+   * dropdown. Goes through visual-editor-be (`POST /api/v1/merchants/nav-menus`),
+   * which calls the gokwik list endpoint server-side — so no CORS / no
+   * `gk-merchant-id` header from the browser. Best-effort: returns `[]` on
+   * failure so the field falls back to the saved handle.
+   */
+  static async getNavMenuOptions(): Promise<
+    Array<{ value: string; label: string }>
+  > {
+    const merchantId = useAuthStore.getState().merchant?.id;
+    if (!merchantId) return [];
+    try {
+      const json = await editorBe
+        .post("api/v1/merchants/nav-menus", { json: { merchantId } })
+        .json<ApiEnvelope<{ items?: Array<{ handle: string; title?: string }> }>>();
+      return (json?.data?.items ?? []).map((m) => ({
+        value: m.handle,
+        label: m.title?.trim() || m.handle,
+      }));
+    } catch (err) {
+      console.error("Error fetching nav-menu options:", err);
+      return [];
+    }
   }
 
   static async getDataSourceOptions(

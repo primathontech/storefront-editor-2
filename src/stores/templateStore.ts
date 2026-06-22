@@ -32,11 +32,28 @@ export interface TemplateStore {
   // ---- Data ----
   pageConfig: any | null;
 
+  // True once the user makes any structural pageConfig edit (section /
+  // widget / data-source). Reset on load (`reset`) and after a successful
+  // save. Gates the header's "Preview" action — a shareable preview is only
+  // worth taking once there are in-progress changes to snapshot.
+  hasUnsavedChanges: boolean;
+
+  // The opaque id of the current preview session for the loaded template, or
+  // null when none exists. "Save and Preview" reuses it (new version each
+  // time); resumed from the backend on load; cleared on publish (which purges
+  // the session) so the next preview starts a fresh id.
+  activePreviewId: string | null;
   // Serialized (JSON) snapshot of each chrome (header/footer) template's
   // sections as last loaded/saved, keyed by template id. saveTemplate
   // compares the current chrome sections against this so a page-only edit
   // doesn't rewrite untouched header/footer templates.
   chromeBaseline: Record<string, string>;
+  // Full chrome (header/footer) template pageConfigs as last loaded, keyed by
+  // template id. Lets "Save and Preview" persist a per-chrome preview snapshot
+  // that preserves the template's own layout/dataSources while swapping in the
+  // edited sections — so the storefront's renderChrome resolves the edited
+  // header/footer in preview mode.
+  chromeConfigs: Record<string, Record<string, unknown>>;
 
   // ---- Translations (self-contained — no dualTranslationStore) ----
   // `language` lives in themeStore (theme-level per Lakshya contract).
@@ -64,6 +81,7 @@ export interface TemplateStore {
   // ---- Setters (write-only state) ----
   setPageConfig: (config: any) => void;
   setChromeBaseline: (baseline: Record<string, string>) => void;
+  setChromeConfigs: (configs: Record<string, Record<string, unknown>>) => void;
   setSelectedSection: (id: string | null) => void;
   setSelectedWidget: (id: string | null) => void;
   toggleSectionExpansion: (sectionId: string) => void;
@@ -139,6 +157,7 @@ export const useTemplateStore = create<TemplateStore>()(
     (set, get) => ({
       pageConfig: null,
       chromeBaseline: {},
+      chromeConfigs: {},
 
       commonTranslations: {},
       templateTranslations: {},
@@ -155,6 +174,7 @@ export const useTemplateStore = create<TemplateStore>()(
       // -- Setters --
       setPageConfig: (config) => set({ pageConfig: config }),
       setChromeBaseline: (baseline) => set({ chromeBaseline: baseline }),
+      setChromeConfigs: (configs) => set({ chromeConfigs: configs }),
 
       setSelectedSection: (id) =>
         set({
@@ -202,7 +222,10 @@ export const useTemplateStore = create<TemplateStore>()(
       reset: () =>
         set({
           pageConfig: null,
+          hasUnsavedChanges: false,
+          activePreviewId: null,
           chromeBaseline: {},
+          chromeConfigs: {},
           selectedSectionId: null,
           selectedWidgetId: null,
           expandedSections: new Set<string>(),
@@ -347,7 +370,10 @@ export const useTemplateStore = create<TemplateStore>()(
           if (i === -1) return {};
           sections[i] = { ...sections[i], ...updates };
           commitClientSection(sectionId, sections[i].settings ?? {});
-          return { pageConfig: { ...state.pageConfig, sections } };
+          return {
+            pageConfig: { ...state.pageConfig, sections },
+            hasUnsavedChanges: true,
+          };
         }),
 
       updateSectionSettings: (sectionId, key, value) =>
@@ -360,7 +386,10 @@ export const useTemplateStore = create<TemplateStore>()(
             settings: { ...sections[i].settings, [key]: value },
           };
           commitClientSection(sectionId, sections[i].settings);
-          return { pageConfig: { ...state.pageConfig, sections } };
+          return {
+            pageConfig: { ...state.pageConfig, sections },
+            hasUnsavedChanges: true,
+          };
         }),
 
       setSectionVisibility: (sectionId, breakpoint, visible) =>
@@ -391,7 +420,10 @@ export const useTemplateStore = create<TemplateStore>()(
           // replaces `responsive` wholesale — the payload must carry the
           // merged responsive object for the change to land.
           commitClientSection(sectionId, newSettings);
-          return { pageConfig: { ...state.pageConfig, sections } };
+          return {
+            pageConfig: { ...state.pageConfig, sections },
+            hasUnsavedChanges: true,
+          };
         }),
 
       updateWidget: (sectionId, widgetId, updates) =>
@@ -407,7 +439,10 @@ export const useTemplateStore = create<TemplateStore>()(
           section.widgets = widgets;
           sections[si] = section;
           commitClientWidget(sectionId, widgetId, widgets[wi].settings ?? {});
-          return { pageConfig: { ...state.pageConfig, sections } };
+          return {
+            pageConfig: { ...state.pageConfig, sections },
+            hasUnsavedChanges: true,
+          };
         }),
 
       updateWidgetSettings: (sectionId, widgetId, key, value) =>
@@ -426,7 +461,10 @@ export const useTemplateStore = create<TemplateStore>()(
           section.widgets = widgets;
           sections[si] = section;
           commitClientWidget(sectionId, widgetId, widgets[wi].settings);
-          return { pageConfig: { ...state.pageConfig, sections } };
+          return {
+            pageConfig: { ...state.pageConfig, sections },
+            hasUnsavedChanges: true,
+          };
         }),
 
       addSection: (section, insertIndex, extraDataSources) => {
@@ -446,6 +484,7 @@ export const useTemplateStore = create<TemplateStore>()(
 
           return {
             pageConfig: { ...prev, sections, dataSources },
+            hasUnsavedChanges: true,
             selectedSectionId: section.id,
             selectedWidgetId: section.widgets?.[0]?.id ?? null,
             expandedSections,
@@ -577,6 +616,7 @@ export const useTemplateStore = create<TemplateStore>()(
 
           return {
             pageConfig: { ...base, sections, dataSources },
+            hasUnsavedChanges: true,
             selectedSectionId: null,
             selectedWidgetId: null,
             showSettingsDrawer: false,
@@ -601,6 +641,7 @@ export const useTemplateStore = create<TemplateStore>()(
           sections[si] = { ...sections[si], widgets };
           return {
             pageConfig: { ...state.pageConfig, sections },
+            hasUnsavedChanges: true,
             selectedWidgetId: null,
             showSettingsDrawer: false,
           };
@@ -618,6 +659,7 @@ export const useTemplateStore = create<TemplateStore>()(
           sections.splice(to, 0, moved);
           return {
             pageConfig: { ...state.pageConfig, sections },
+            hasUnsavedChanges: true,
             selectedSectionId: toId,
           };
         });
@@ -634,6 +676,7 @@ export const useTemplateStore = create<TemplateStore>()(
               [key]: { type, params, required: false },
             },
           },
+          hasUnsavedChanges: true,
         })),
 
       updateDataSource: (key, updates) =>
@@ -648,6 +691,7 @@ export const useTemplateStore = create<TemplateStore>()(
               },
             },
           },
+          hasUnsavedChanges: true,
         })),
 
       removeDataSource: (key) =>
@@ -668,6 +712,7 @@ export const useTemplateStore = create<TemplateStore>()(
               dataSources: remaining,
               sections,
             },
+            hasUnsavedChanges: true,
           };
         }),
 
