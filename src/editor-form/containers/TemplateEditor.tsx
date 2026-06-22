@@ -23,7 +23,7 @@ import {
 } from "../preview-bridge";
 import { EditorAPI } from "../services/api";
 import { templateSessionMachine } from "../../machines/templateSession";
-import type { PreviewEnv,ThemeStructure, ThemeStructureTemplate } from "../services/api";
+import type { ThemeStructure, ThemeStructureTemplate } from "../services/api";
 import { RESPONSIVE_FRAME_STYLE } from "../utils/preview-frame-style";
 import { buildPreviewUrl, rebasePreviewUrl } from "../utils/preview-route";
 import { resolveSectionSettings } from "../utils/translation-utils";
@@ -177,6 +177,7 @@ export default function TemplateEditor({
       const { previewId, url, version } = await EditorAPI.getPreviewLink({
         themeId,
         templateId: tmpl.id,
+        language,
         previewId: activePreviewId ?? undefined,
         routeContext: tmpl.routeContext,
         pageConfig: bodyPageConfig,
@@ -197,8 +198,8 @@ export default function TemplateEditor({
           EditorAPI.getPreviewLink({
             themeId,
             templateId: chromeId,
-            previewId,
             language,
+            previewId,
             pageConfig: {
               ...(chromeConfigs[chromeId] ?? {}),
               sections: resolveSections(sections),
