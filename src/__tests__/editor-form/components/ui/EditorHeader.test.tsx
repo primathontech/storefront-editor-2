@@ -5,9 +5,8 @@
 // mock only TemplateSwitchDropdown — it pulls in the portal Dropdown which
 // is exercised by its own test — and seed the real themeStore for the theme
 // name. We assert: theme label, device buttons call setDevice + reflect the
-// active one via aria-pressed, the "Save and Preview" button fires onPreview
-// and gates on previewDisabled/onPreview, and the Publish button
-// label/disabled/loading wiring + onSave firing.
+// active one via aria-pressed, and the Save button label/disabled/loading
+// wiring + onSave firing.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 
@@ -82,49 +81,7 @@ describe("EditorHeader — device toggles", () => {
   });
 });
 
-describe("EditorHeader — Save and Preview button", () => {
-  it("fires onPreview when a lane supports it and there are changes", () => {
-    const onPreview = vi.fn();
-    render(
-      <EditorHeader
-        {...baseProps}
-        onPreview={onPreview}
-        previewDisabled={false}
-      />,
-    );
-    const preview = screen.getByRole("button", { name: "Save and Preview" });
-    expect(preview).toBeEnabled();
-    fireEvent.click(preview);
-    expect(onPreview).toHaveBeenCalledTimes(1);
-  });
-
-  it("is disabled in lanes that don't pass onPreview (e.g. static pages)", () => {
-    // baseProps intentionally omits onPreview — the button renders but is
-    // disabled so every lane shows the same affordance.
-    render(<EditorHeader {...baseProps} />);
-    expect(
-      screen.getByRole("button", { name: "Save and Preview" }),
-    ).toBeDisabled();
-  });
-
-  it("is disabled when previewDisabled (nothing new) and does not fire onPreview", () => {
-    const onPreview = vi.fn();
-    render(<EditorHeader {...baseProps} onPreview={onPreview} previewDisabled />);
-    const preview = screen.getByRole("button", { name: "Save and Preview" });
-    expect(preview).toBeDisabled();
-    fireEvent.click(preview);
-    expect(onPreview).not.toHaveBeenCalled();
-  });
-
-  it("shows the loading label and disables while a preview is being created", () => {
-    const onPreview = vi.fn();
-    render(<EditorHeader {...baseProps} onPreview={onPreview} previewLoading />);
-    const preview = screen.getByRole("button", { name: "Saving…" });
-    expect(preview).toBeDisabled();
-  });
-});
-
-describe("EditorHeader — Publish button", () => {
+describe("EditorHeader — Save button", () => {
   it("is enabled and fires onSave when there are changes (idle)", () => {
     const onSave = vi.fn();
     render(
@@ -135,7 +92,7 @@ describe("EditorHeader — Publish button", () => {
         onSave={onSave}
       />,
     );
-    const save = screen.getByRole("button", { name: "Publish" });
+    const save = screen.getByRole("button", { name: "Save" });
     expect(save).toBeEnabled();
     fireEvent.click(save);
     expect(onSave).toHaveBeenCalledTimes(1);
@@ -151,7 +108,7 @@ describe("EditorHeader — Publish button", () => {
         onSave={onSave}
       />,
     );
-    const save = screen.getByRole("button", { name: "Publish" });
+    const save = screen.getByRole("button", { name: "Save" });
     expect(save).toBeDisabled();
     fireEvent.click(save);
     expect(onSave).not.toHaveBeenCalled();
@@ -160,9 +117,9 @@ describe("EditorHeader — Publish button", () => {
   it("renders the right label for each save status", () => {
     const statuses: Array<[SaveStatus, string]> = [
       ["validating", "Validating…"],
-      ["saving", "Publishing…"],
-      ["saved", "Published"],
-      ["failed", "Retry publish"],
+      ["saving", "Saving…"],
+      ["saved", "Saved"],
+      ["failed", "Retry save"],
     ];
     for (const [status, label] of statuses) {
       const { unmount } = render(
