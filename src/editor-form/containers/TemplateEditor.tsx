@@ -99,10 +99,10 @@ export default function TemplateEditor({
   const setMode = useEditorUiStore((s) => s.setMode);
   const translationService = useTemplateStore((s) => s.translationService);
   const showSettingsDrawer = useTemplateStore((s) => s.showSettingsDrawer);
-  const hasUnsavedChanges = useTemplateStore((s) => s.hasUnsavedChanges);
-  const hasUnsavedTranslations = useTemplateStore(
-    (s) => s.hasUnsavedTranslations,
-  );
+  // hasUnsavedChanges / hasUnsavedTranslations previously gated the "Save and
+  // Preview" button; the shareable preview link feature was rolled back
+  // (2026-06-23) so the button is now permanently disabled and those signals
+  // are no longer read here.
   const activePreviewId = useTemplateStore((s) => s.activePreviewId);
   const [creatingPreview, setCreatingPreview] = useState(false);
   const [previewLink, setPreviewLink] = useState<{
@@ -612,13 +612,10 @@ export default function TemplateEditor({
   const saveDisabled =
     saveStatus === "validating" || saveStatus === "saving";
 
-  // Preview is only meaningful with in-progress edits to snapshot. Disable
-  // it with no unsaved changes, while a snapshot is in flight, or mid-save
-  // (a preview taken during a save would capture an ambiguous state).
-  const previewDisabled =
-    (!hasUnsavedChanges && !hasUnsavedTranslations) ||
-    creatingPreview ||
-    saveDisabled;
+  // Shareable preview link feature rolled back (2026-06-23): keep the "Save and
+  // Preview" button visible but permanently disabled — generated links no
+  // longer activate preview on the storefront. Restore by reverting this commit.
+  const previewDisabled = true;
 
   const isCommitting = state.matches({ editing: { preview: "committing" } });
   const previewLoading = state.hasTag("previewLoading");
