@@ -319,11 +319,6 @@ export default function TranslationEditor({
       saveStatus={saveStatus}
       saveDisabled={saveDisabled}
       onSave={() => send({ type: "SAVE_REQUESTED" })}
-      // Static pages show "Save and Preview" for consistency, but shareable
-      // preview isn't built for this lane yet — render it disabled (no
-      // onPreview). Publish is unaffected.
-      previewDisabled
-      previewDisabledReason="Preview for static pages is coming soon"
     />
   );
 
