@@ -2,6 +2,8 @@ import {
   createChannel,
   type AvailableSectionRegistry,
   type Channel,
+  type DataSourceOption,
+  type DataSourceOptionSource,
   type ProtocolMap,
   type ProtocolVersion,
   type SelectionTarget,
@@ -79,10 +81,28 @@ interface BridgeArgs {
 }
 
 const COMMIT_DEBOUNCE_MS = 150;
+const OPTIONS_REQUEST_TIMEOUT_MS = 10_000;
 
 let channel: Channel<ProtocolMap> | null = null;
 let args: BridgeArgs | null = null;
 let serverTimer: number | null = null;
+
+// In-flight data-source option requests, keyed by requestId. The bridge is
+// fire-and-forget, so request/reply is correlated here: requestDataSourceOptions
+// stores a resolver, the inbound `dataSourceOptions` handler resolves it.
+interface PendingOptionRequest {
+  resolve: (items: DataSourceOption[]) => void;
+  timer: number;
+}
+const pendingOptionRequests = new Map<string, PendingOptionRequest>();
+
+function settleOptionRequest(requestId: string, items: DataSourceOption[]): void {
+  const pending = pendingOptionRequests.get(requestId);
+  if (!pending) return;
+  window.clearTimeout(pending.timer);
+  pendingOptionRequests.delete(requestId);
+  pending.resolve(items);
+}
 
 export function registerPreviewBridge(next: BridgeArgs): void {
   // Fresh iframe incoming — close any previous channel and cancel any
@@ -104,6 +124,9 @@ export function registerPreviewBridge(next: BridgeArgs): void {
   channel.on("commitFailed", () => args?.onCommitFailed());
   channel.on("assets", (payload) => args?.onAssets(payload));
   channel.on("ready", (payload) => args?.onReady(payload));
+  channel.on("dataSourceOptions", (payload) =>
+    settleOptionRequest(payload.requestId, payload.items ?? []),
+  );
 }
 
 export function unregisterPreviewBridge(): void {
@@ -111,9 +134,35 @@ export function unregisterPreviewBridge(): void {
     window.clearTimeout(serverTimer);
     serverTimer = null;
   }
+  // Resolve any in-flight option requests empty so callers don't hang across
+  // an iframe/template swap; the next session re-requests as needed.
+  for (const [requestId] of pendingOptionRequests) {
+    settleOptionRequest(requestId, []);
+  }
   channel?.close();
   channel = null;
   args = null;
+}
+
+/**
+ * Ask the iframe (merchant app) for a data-source dropdown list. Resolves with
+ * the merchant's collections/products as `{value,label}[]`. Best-effort: an
+ * empty list on timeout, missing channel, or no merchant callback wired — the
+ * picker then falls back to the saved handle.
+ */
+export function requestDataSourceOptions(
+  source: DataSourceOptionSource,
+): Promise<DataSourceOption[]> {
+  if (!channel) return Promise.resolve([]);
+  const requestId = crypto.randomUUID();
+  return new Promise<DataSourceOption[]>((resolve) => {
+    const timer = window.setTimeout(
+      () => settleOptionRequest(requestId, []),
+      OPTIONS_REQUEST_TIMEOUT_MS,
+    );
+    pendingOptionRequests.set(requestId, { resolve, timer });
+    channel!.send("requestDataSourceOptions", { requestId, source });
+  });
 }
 
 export function commitClientWidget(
