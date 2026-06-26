@@ -72,6 +72,12 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   const widgetSchemas = useThemeStore((s) => s.schemas);
   const schemasReady = useThemeStore((s) => s.assetsStatus === "ready");
   const librarySections = useThemeStore((s) => s.sections);
+  // Only show the data-source pickers when the previewed storefront advertised
+  // support (wired fetchDataSourceOptions). Un-migrated storefronts → hidden,
+  // so deploying the editor ahead of merchant migration shows nothing broken.
+  const dataSourceEditingSupported = useThemeStore(
+    (s) => s.dataSourceEditingSupported,
+  );
 
   // A section is removable only if its type is in the available-sections
   // library — otherwise the user couldn't re-add it after removing.
@@ -193,9 +199,11 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
         {/* Data source pickers for the selected section (re-point its
             collection/product). Rendered at the top of the inspector so the
-            most consequential control is seen first. Renders null when the
-            section has no editable data sources. */}
-        {schemasReady && selectedSection && (
+            most consequential control is seen first. Gated on the storefront
+            advertising support (see dataSourceEditingSupported) so un-migrated
+            storefronts show nothing. Renders null when the section has no
+            editable data sources. */}
+        {schemasReady && selectedSection && dataSourceEditingSupported && (
           <DataSourceEditor section={selectedSection} />
         )}
 

@@ -1,6 +1,7 @@
 import {
   createChannel,
   type AvailableSectionRegistry,
+  type BridgeCapabilities,
   type Channel,
   type DataSourceOption,
   type DataSourceOptionSource,
@@ -76,8 +77,13 @@ interface BridgeArgs {
   /** Iframe-side bridge is mounted and listening — safe to send. The
    *  bridge's protocol version is forwarded so the consumer can compare
    *  it against the editor's expected version and refuse to proceed on
-   *  mismatch (see TemplateEditor's onReady). */
-  onReady: (payload: { version: ProtocolVersion }) => void;
+   *  mismatch (see TemplateEditor's onReady). `capabilities` lets the editor
+   *  gate additive features (e.g. data-source pickers) per-storefront —
+   *  absent on un-migrated storefronts. */
+  onReady: (payload: {
+    version: ProtocolVersion;
+    capabilities?: BridgeCapabilities;
+  }) => void;
 }
 
 const COMMIT_DEBOUNCE_MS = 150;

@@ -46,15 +46,24 @@ export function DataSourceEditor({ section }: DataSourceEditorProps) {
 
   if (editable.length === 0) return null;
 
+  // With several sources in one section, the bare type label ("Collection")
+  // can't tell two same-type fields apart — fall back to the referencing
+  // widget's name. A single source keeps the clean type label.
+  const disambiguate = editable.length > 1;
+
   return (
     <>
-      {editable.map((ds) =>
-        ds.entry.mode === "multi" ? (
-          <MultiHandleField key={ds.key} ds={ds} />
+      {editable.map((ds) => {
+        const label =
+          disambiguate && ds.widgetName
+            ? ds.widgetName
+            : fieldLabel(ds.entry.optionSource, ds.entry.mode === "multi");
+        return ds.entry.mode === "multi" ? (
+          <MultiHandleField key={ds.key} ds={ds} label={label} />
         ) : (
-          <SingleHandleField key={ds.key} ds={ds} />
-        ),
-      )}
+          <SingleHandleField key={ds.key} ds={ds} label={label} />
+        );
+      })}
     </>
   );
 }
@@ -94,7 +103,13 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SingleHandleField({ ds }: { ds: EditableDataSource }) {
+function SingleHandleField({
+  ds,
+  label,
+}: {
+  ds: EditableDataSource;
+  label: string;
+}) {
   const { options, status } = useDataSourceOptions(ds.entry.optionSource);
   const value = typeof ds.value === "string" ? ds.value : "";
 
@@ -107,7 +122,7 @@ function SingleHandleField({ ds }: { ds: EditableDataSource }) {
 
   return (
     <div className={FIELD_ROW}>
-      <FieldLabel>{fieldLabel(ds.entry.optionSource, false)}</FieldLabel>
+      <FieldLabel>{label}</FieldLabel>
       <Dropdown
         options={mergedOptions}
         value={value}
@@ -122,7 +137,13 @@ function SingleHandleField({ ds }: { ds: EditableDataSource }) {
   );
 }
 
-function MultiHandleField({ ds }: { ds: EditableDataSource }) {
+function MultiHandleField({
+  ds,
+  label,
+}: {
+  ds: EditableDataSource;
+  label: string;
+}) {
   const { options, status } = useDataSourceOptions(ds.entry.optionSource);
   const selected = React.useMemo(
     () => (Array.isArray(ds.value) ? ds.value : []),
@@ -143,7 +164,7 @@ function MultiHandleField({ ds }: { ds: EditableDataSource }) {
 
   return (
     <div className={FIELD_ROW}>
-      <FieldLabel>{fieldLabel(ds.entry.optionSource, true)}</FieldLabel>
+      <FieldLabel>{label}</FieldLabel>
       <MultiSelect
         options={mergedOptions}
         value={selected}

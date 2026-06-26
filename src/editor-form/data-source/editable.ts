@@ -75,6 +75,10 @@ export interface EditableDataSource {
   entry: DataSourceEditableEntry;
   /** current handle (single) or handles (multi). */
   value: string | string[];
+  /** name of the (first) widget referencing this source — used to label the
+   *  field when a section has several sources, so same-type ones aren't both
+   *  labelled "Collection". */
+  widgetName?: string;
 }
 
 /**
@@ -110,7 +114,7 @@ export function resolveEditableDataSource(
  *  drives which dropdowns the inspector shows when a section is selected. */
 export function getSectionEditableDataSources(
   section:
-    | { widgets?: Array<{ dataSourceKey?: string | null }> }
+    | { widgets?: Array<{ dataSourceKey?: string | null; name?: string }> }
     | null
     | undefined,
   dataSources: DataSourcesMap | undefined,
@@ -123,7 +127,7 @@ export function getSectionEditableDataSources(
     if (!key || seen.has(key)) continue;
     seen.add(key);
     const editable = resolveEditableDataSource(key, dataSources[key]);
-    if (editable) out.push(editable);
+    if (editable) out.push({ ...editable, widgetName: w.name });
   }
   return out;
 }
