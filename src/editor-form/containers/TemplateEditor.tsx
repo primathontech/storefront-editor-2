@@ -574,7 +574,7 @@ export default function TemplateEditor({
         onAssets: ({ widgetSchemas, availableSections }) => {
           useThemeStore.getState().setAssets(widgetSchemas, availableSections);
         },
-        onReady: ({ version }) => {
+        onReady: ({ version, capabilities }) => {
           if (version !== PROTOCOL_VERSION) {
             // Iframe ships an incompatible @shopkit/editor-bridge. Stall
             // the boot machine (don't fire IFRAME_LOADED) so the overlay
@@ -587,6 +587,14 @@ export default function TemplateEditor({
             );
             return;
           }
+          // Gate the data-source pickers on the storefront actually wiring
+          // fetchDataSourceOptions — un-migrated storefronts omit this, so the
+          // editor hides the pickers rather than showing empty dropdowns.
+          useThemeStore
+            .getState()
+            .setDataSourceEditingSupported(
+              !!capabilities?.dataSourceOptions,
+            );
           send({ type: "IFRAME_LOADED" });
         },
       });

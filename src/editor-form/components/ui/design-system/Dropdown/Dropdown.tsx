@@ -59,6 +59,15 @@ export interface DropdownProps {
    * Label placement: "stacked" (above) or "inline" (left of dropdown)
    */
   labelPlacement?: "stacked" | "inline";
+  /**
+   * Show a filter input at the top of the menu (client-side filter over the
+   * loaded options by label/value). Opt-in — for long lists like catalogs.
+   */
+  searchable?: boolean;
+  /**
+   * Placeholder for the search input (only when `searchable`).
+   */
+  searchPlaceholder?: string;
 }
 
 const Dropdown = React.forwardRef<HTMLButtonElement, DropdownProps>(
@@ -76,17 +85,35 @@ const Dropdown = React.forwardRef<HTMLButtonElement, DropdownProps>(
       className,
       containerClassName,
       labelPlacement = "stacked",
+      searchable = false,
+      searchPlaceholder = "Search…",
     },
     ref
   ) => {
     const [isOpen, setIsOpen] = React.useState(false);
+    const [query, setQuery] = React.useState("");
     const containerRef = React.useRef<HTMLDivElement>(null);
     const menuRef = React.useRef<HTMLDivElement>(null);
+    const searchInputRef = React.useRef<HTMLInputElement>(null);
 
     const selectedOption = React.useMemo(
       () => options.find((opt) => opt.value === value),
       [options, value]
     );
+
+    // Filtered list shown in the menu (full list when not searchable/empty
+    // query). Matches label or value, case-insensitive. Trigger text always
+    // uses the full `options` so the saved selection still resolves.
+    const visibleOptions = React.useMemo(() => {
+      if (!searchable) return options;
+      const q = query.trim().toLowerCase();
+      if (!q) return options;
+      return options.filter(
+        (opt) =>
+          opt.label.toLowerCase().includes(q) ||
+          opt.value.toLowerCase().includes(q)
+      );
+    }, [options, searchable, query]);
 
     const hasError = !!error;
 
@@ -120,11 +147,35 @@ const Dropdown = React.forwardRef<HTMLButtonElement, DropdownProps>(
       }
     }, [isOpen, value]);
 
+    // Reset the filter and focus the search box each time the menu opens, so a
+    // stale query never hides options on the next open.
+    React.useEffect(() => {
+      if (isOpen && searchable) {
+        setQuery("");
+        searchInputRef.current?.focus();
+      }
+    }, [isOpen, searchable]);
+
     const handleSelect = (optionValue: string) => {
       if (onChange) {
         onChange(optionValue);
       }
       setIsOpen(false);
+    };
+
+    const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setIsOpen(false);
+        return;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const first = visibleOptions.find((opt) => !opt.disabled);
+        if (first) {
+          handleSelect(first.value);
+        }
+      }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -233,27 +284,44 @@ const Dropdown = React.forwardRef<HTMLButtonElement, DropdownProps>(
 
           {isOpen && (
             <div ref={menuRef} className={styles.menu} role="listbox">
+              {searchable && (
+                <div className={styles["search-wrapper"]}>
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    className={styles["search-input"]}
+                    placeholder={searchPlaceholder}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
+                  />
+                </div>
+              )}
               <div className={styles["menu-content"]}>
-                {options.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className={clsx(
-                      styles["menu-item"],
-                      value === option.value && styles["menu-item-selected"],
-                      option.disabled && styles["menu-item-disabled"]
-                    )}
-                    onClick={() =>
-                      !option.disabled && handleSelect(option.value)
-                    }
-                    disabled={option.disabled}
-                    data-value={option.value}
-                    role="option"
-                    aria-selected={value === option.value}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+                {visibleOptions.length === 0 ? (
+                  <div className={styles["menu-empty"]}>No matches</div>
+                ) : (
+                  visibleOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={clsx(
+                        styles["menu-item"],
+                        value === option.value && styles["menu-item-selected"],
+                        option.disabled && styles["menu-item-disabled"]
+                      )}
+                      onClick={() =>
+                        !option.disabled && handleSelect(option.value)
+                      }
+                      disabled={option.disabled}
+                      data-value={option.value}
+                      role="option"
+                      aria-selected={value === option.value}
+                    >
+                      {option.label}
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           )}
