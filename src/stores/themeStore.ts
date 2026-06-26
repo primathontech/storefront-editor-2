@@ -23,12 +23,17 @@ export interface ThemeStore {
   currentTemplate: ThemeStructureTemplate | null;
   language: string;
   assetsStatus: "idle" | "ready";
+  /** The previewed storefront wired EditorHost's fetchDataSourceOptions
+   *  (advertised on the bridge `ready` handshake). False for storefronts that
+   *  haven't adopted data-source editing yet → the editor hides the pickers. */
+  dataSourceEditingSupported: boolean;
 
   setTheme: (theme: ThemeStructure) => void;
   setAssets: (
     schemas: WidgetRegistry,
     sections: AvailableSectionRegistry,
   ) => void;
+  setDataSourceEditingSupported: (supported: boolean) => void;
   setCurrentTemplate: (template: ThemeStructureTemplate | null) => void;
   setLanguage: (language: string) => void;
   clear: () => void;
@@ -41,10 +46,13 @@ export const useThemeStore = create<ThemeStore>((set) => ({
   currentTemplate: null,
   language: "en",
   assetsStatus: "idle",
+  dataSourceEditingSupported: false,
 
   setTheme: (theme) => set({ theme }),
   setAssets: (schemas, sections) =>
     set({ schemas, sections, assetsStatus: "ready" }),
+  setDataSourceEditingSupported: (dataSourceEditingSupported) =>
+    set({ dataSourceEditingSupported }),
   setCurrentTemplate: (currentTemplate) =>
     set((state) => {
       if (!currentTemplate) {
@@ -66,5 +74,6 @@ export const useThemeStore = create<ThemeStore>((set) => ({
       currentTemplate: null,
       language: "en",
       assetsStatus: "idle",
+      dataSourceEditingSupported: false,
     }),
 }));

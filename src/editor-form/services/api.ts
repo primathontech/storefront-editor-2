@@ -13,11 +13,12 @@
  *   PUT  /api/v1/themes/{themeId}/templates/{templateId}
  *   PUT  /api/v1/themes/{themeId}/translations/{templateId}/{language}
  *
- * Storefront-hosted endpoints — auth/data-source proxies inherited from
- * the in-app editor. Widget schemas + section library moved off HTTP and
- * onto a postMessage handshake (EditorAssetPublisher → TemplateEditor).
+ * Storefront-hosted endpoints — auth proxy inherited from the in-app editor.
+ * Widget schemas + section library moved off HTTP and onto a postMessage
+ * handshake (EditorAssetPublisher → TemplateEditor); data-source dropdown
+ * options likewise moved onto the bridge (requestDataSourceOptions →
+ * EditorHost's fetchDataSourceOptions in the merchant app).
  *   POST /editor/api/merchant-validation               — auth check
- *   POST /editor/api/data-source-options               — dropdown options
  *
  * AI proxies (visual-editor-be — provider keys injected server-side, OFCE-48):
  *   POST /api/v1/ai/generate     — Anthropic Messages (forwards requestBody)
@@ -27,8 +28,6 @@
  *   - Throws on non-2xx (HTTPError) — no manual `!response.ok` plumbing.
  *   - `retry: 0` because the editor's failure mode is an explicit error
  *     screen at boot / surfaced to the user; no silent retries.
- *   - Two instances because Spike 2 + the legacy proxy routes live on
- *     the storefront origin while the BE endpoint surface is unbuilt.
  */
 
 import ky from "ky";
@@ -116,22 +115,6 @@ const editorBe = ky.create({
     ],
   },
 });
-
-// Storefront-hosted legacy proxy routes (currently just
-// /editor/api/data-source-options). Built per-call so the prefix follows
-// the boot-machine's resolved merchant.previewOrigin. Collapses into
-// editorBe.get() the day these endpoints migrate to visual-editor-be.
-const storefrontKy = () => {
-  const previewOrigin = useAuthStore.getState().merchant?.previewOrigin;
-  if (!previewOrigin) {
-    throw new Error("previewOrigin not set; merchant not authenticated");
-  }
-  return ky.create({
-    prefix: previewOrigin,
-    cache: "no-store",
-    retry: 0,
-  });
-};
 
 /**
  * Resolve the preview origin the editor iframes + postMessages against.
@@ -467,19 +450,6 @@ export class EditorAPI {
     }
   }
 
-  static async getDataSourceOptions(
-    type: "collections" | "products",
-  ): Promise<Array<{ value: string; label: string }>> {
-    try {
-      const json = await storefrontKy()
-        .post("editor/api/data-source-options", { json: { type } })
-        .json<ApiEnvelope<Array<{ value: string; label: string }>>>();
-      return json?.data ?? [];
-    } catch (err) {
-      console.error("Error fetching data source options:", err);
-      return [];
-    }
-  }
 
   /**
    * Voice → text via the editor backend's Whisper proxy
