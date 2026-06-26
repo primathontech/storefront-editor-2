@@ -681,7 +681,7 @@ export const useTemplateStore = create<TemplateStore>()(
           hasUnsavedChanges: true,
         })),
 
-      updateDataSource: (key, updates) =>
+      updateDataSource: (key, updates) => {
         set((state) => ({
           pageConfig: {
             ...state.pageConfig,
@@ -694,7 +694,12 @@ export const useTemplateStore = create<TemplateStore>()(
             },
           },
           hasUnsavedChanges: true,
-        })),
+        }));
+        // Re-point a data source -> the preview must re-fetch with the new
+        // handle, so go through the commit lane (full pageConfig applyConfig +
+        // soft-nav), not the patch fast-lane which only swaps settings.
+        commitServer(get().pageConfig);
+      },
 
       removeDataSource: (key) =>
         set((state) => {
