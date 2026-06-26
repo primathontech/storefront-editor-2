@@ -33,8 +33,7 @@ let fetchMock: Mock;
 beforeEach(() => {
   fetchMock = vi.fn();
   vi.stubGlobal("fetch", fetchMock);
-  // Clean auth state between tests (token drives the beforeRequest hook;
-  // previewOrigin drives storefrontKy()).
+  // Clean auth state between tests (token drives the beforeRequest hook).
   useAuthStore.getState().clear();
 });
 
@@ -299,52 +298,6 @@ describe("EditorAPI.authenticate", () => {
 
     const result = await EditorAPI.authenticate({ mid: "m1", token: "tok" });
     expect(result.merchant.previewOrigin).toBe("https://shop.example.com");
-  });
-});
-
-describe("EditorAPI.getDataSourceOptions", () => {
-  it("POSTs to the storefront origin and returns data", async () => {
-    useAuthStore.getState().setSession({
-      token: "tok",
-      merchant: {
-        id: "m",
-        themeId: "t1",
-        previewOrigin: "https://store.test",
-      },
-    });
-    const options = [{ value: "c1", label: "Collection 1" }];
-    fetchMock.mockResolvedValue(jsonResponse({ data: options }));
-
-    const result = await EditorAPI.getDataSourceOptions("collections");
-
-    expect(result).toEqual(options);
-    const req = lastRequest();
-    expect(req.method).toBe("POST");
-    expect(req.url).toContain("store.test/editor/api/data-source-options");
-  });
-
-  it("returns [] when the merchant is not authenticated (no previewOrigin)", async () => {
-    const err = vi.spyOn(console, "error").mockImplementation(() => {});
-    // storefrontKy() throws before any fetch; getDataSourceOptions catches it.
-    await expect(EditorAPI.getDataSourceOptions("products")).resolves.toEqual(
-      [],
-    );
-    expect(fetchMock).not.toHaveBeenCalled();
-    err.mockRestore();
-  });
-
-  it("returns [] on a network/HTTP error", async () => {
-    useAuthStore.getState().setSession({
-      token: "tok",
-      merchant: { id: "m", themeId: "t1", previewOrigin: "https://store.test" },
-    });
-    const err = vi.spyOn(console, "error").mockImplementation(() => {});
-    fetchMock.mockResolvedValue(jsonResponse({ message: "bad" }, 500));
-
-    await expect(EditorAPI.getDataSourceOptions("products")).resolves.toEqual(
-      [],
-    );
-    err.mockRestore();
   });
 });
 

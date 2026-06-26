@@ -13,6 +13,7 @@ import {
   DesignSidebarHeader,
   IconButton,
 } from "./design-system";
+import { DataSourceEditor } from "./DataSourceEditor";
 import { DynamicForm } from "./DynamicForm";
 import { CloseIcon } from "./icons/CloseIcon";
 import { RemoveSectionButton } from "./RemoveSectionButton";
@@ -71,6 +72,12 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   const widgetSchemas = useThemeStore((s) => s.schemas);
   const schemasReady = useThemeStore((s) => s.assetsStatus === "ready");
   const librarySections = useThemeStore((s) => s.sections);
+  // Only show the data-source pickers when the previewed storefront advertised
+  // support (wired fetchDataSourceOptions). Un-migrated storefronts → hidden,
+  // so deploying the editor ahead of merchant migration shows nothing broken.
+  const dataSourceEditingSupported = useThemeStore(
+    (s) => s.dataSourceEditingSupported,
+  );
 
   // A section is removable only if its type is in the available-sections
   // library — otherwise the user couldn't re-add it after removing.
@@ -190,6 +197,16 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             doesn't pop in with "no schema" content. */}
         {!schemasReady && <SidebarSkeleton />}
 
+        {/* Data source pickers for the selected section (re-point its
+            collection/product). Rendered at the top of the inspector so the
+            most consequential control is seen first. Gated on the storefront
+            advertising support (see dataSourceEditingSupported) so un-migrated
+            storefronts show nothing. Renders null when the section has no
+            editable data sources. */}
+        {schemasReady && selectedSection && dataSourceEditingSupported && (
+          <DataSourceEditor section={selectedSection} />
+        )}
+
         {/* Widget Settings */}
         {schemasReady && selectedWidget && selectedWidgetSchema && (
           <>
@@ -219,30 +236,6 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                 />
               )}
 
-            {/*
-                Legacy DataSourceEditor usage (kept as a reference for future reintroduction).
-                Original location: BuilderToolbar, before settings were moved to the right sidebar.
-
-                Example wiring (to adapt when we bring DataSourceEditor back here):
-
-                {selectedWidget &&
-                  selectedDataSource &&
-                  selectedWidget.dataSourceKey && (
-                    <DataSourceEditor
-                      dataSource={selectedDataSource}
-                      onUpdateParams={(updates) =>
-                        updateDataSource(selectedWidget.dataSourceKey, {
-                          params: {
-                            ...(selectedDataSource.params || {}),
-                            ...updates,
-                          },
-                        })
-                      }
-                    />
-                  )}
-
-                <br />
-              */}
           </>
         )}
 
