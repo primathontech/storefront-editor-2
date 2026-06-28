@@ -23,7 +23,7 @@
     "@dnd-kit/sortable": "^7.0.2",
     "@dnd-kit/utilities": "^3.2.2",
     "@monaco-editor/react": "^4.6.0",
-    "@shopkit/editor-bridge": "^0.4.0",
+    "@shopkit/editor-bridge": "^0.6.0",
     "@shopkit/i18n": "^0.1.4",
     "@tailwindcss/vite": "^4.2.4",
     "@xstate/react": "^6.1.0",
@@ -39,7 +39,7 @@
     "react-quill": "^2.0.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss": "^4.2.4",
-    "vercel": "^54.14.5",
+    "vercel": "^54.17.3",
     "xstate": "^5.31.1",
     "zustand": "^4.5.0"
   },
