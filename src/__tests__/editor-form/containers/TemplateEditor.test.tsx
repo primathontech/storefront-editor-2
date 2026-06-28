@@ -43,6 +43,9 @@ vi.mock("../../../editor-form/services/api", () => ({
     getTemplate: vi.fn(),
     saveTemplate: vi.fn(),
     saveTranslation: vi.fn(),
+    // Boot resumes any active "Save and Preview" draft; default to "none" so
+    // boot resolves to the live page. Tests that need a draft override it.
+    getLatestPreview: vi.fn(),
   },
 }));
 
@@ -53,6 +56,7 @@ import { useThemeStore } from "../../../stores/themeStore";
 
 const getTranslation = EditorAPI.getTranslation as unknown as Mock;
 const getTemplate = EditorAPI.getTemplate as unknown as Mock;
+const getLatestPreview = EditorAPI.getLatestPreview as unknown as Mock;
 const onSwitchTemplate = vi.fn();
 
 // A promise that never settles — pins the boot actor in `bootingTemplate`.
@@ -71,6 +75,8 @@ beforeEach(() => {
     currentTemplate: { id: "home", name: "Home", routeContext: { path: "/" } },
     language: "en",
   });
+  // No resumable preview draft by default — boot loads the live page.
+  getLatestPreview.mockResolvedValue(null);
 });
 
 afterEach(() => {
