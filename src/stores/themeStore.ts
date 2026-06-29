@@ -27,6 +27,11 @@ export interface ThemeStore {
    *  (advertised on the bridge `ready` handshake). False for storefronts that
    *  haven't adopted data-source editing yet → the editor hides the pickers. */
   dataSourceEditingSupported: boolean;
+  /** The previewed storefront has the one-time preview-feature code sync in its
+   *  repo (advertised on the bridge `ready` handshake). False until the iframe's
+   *  EditorHost confirms it → the editor disables the shareable-preview button
+   *  for storefronts that haven't run the sync yet. */
+  previewCodeSync: boolean;
 
   setTheme: (theme: ThemeStructure) => void;
   setAssets: (
@@ -34,6 +39,7 @@ export interface ThemeStore {
     sections: AvailableSectionRegistry,
   ) => void;
   setDataSourceEditingSupported: (supported: boolean) => void;
+  setPreviewCodeSync: (synced: boolean) => void;
   setCurrentTemplate: (template: ThemeStructureTemplate | null) => void;
   setLanguage: (language: string) => void;
   clear: () => void;
@@ -47,12 +53,14 @@ export const useThemeStore = create<ThemeStore>((set) => ({
   language: "en",
   assetsStatus: "idle",
   dataSourceEditingSupported: false,
+  previewCodeSync: false,
 
   setTheme: (theme) => set({ theme }),
   setAssets: (schemas, sections) =>
     set({ schemas, sections, assetsStatus: "ready" }),
   setDataSourceEditingSupported: (dataSourceEditingSupported) =>
     set({ dataSourceEditingSupported }),
+  setPreviewCodeSync: (previewCodeSync) => set({ previewCodeSync }),
   setCurrentTemplate: (currentTemplate) =>
     set((state) => {
       if (!currentTemplate) {
@@ -75,5 +83,6 @@ export const useThemeStore = create<ThemeStore>((set) => ({
       language: "en",
       assetsStatus: "idle",
       dataSourceEditingSupported: false,
+      previewCodeSync: false,
     }),
 }));

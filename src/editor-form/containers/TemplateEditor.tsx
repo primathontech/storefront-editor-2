@@ -104,6 +104,7 @@ export default function TemplateEditor({
     (s) => s.hasUnsavedTranslations,
   );
   const activePreviewId = useTemplateStore((s) => s.activePreviewId);
+  const previewCodeSync = useThemeStore((s) => s.previewCodeSync);
   const [creatingPreview, setCreatingPreview] = useState(false);
   const [previewLink, setPreviewLink] = useState<{
     url: string;
@@ -595,6 +596,12 @@ export default function TemplateEditor({
             .setDataSourceEditingSupported(
               !!capabilities?.dataSourceOptions,
             );
+          // The handshake firing means the storefront has the one-time
+          // preview-feature code sync. Flip the preview gate on (defaults false,
+          // so a storefront that never handshakes keeps preview disabled).
+          useThemeStore
+            .getState()
+            .setPreviewCodeSync(!!capabilities?.previewCodeSync);
           send({ type: "IFRAME_LOADED" });
         },
       });
@@ -624,9 +631,16 @@ export default function TemplateEditor({
   // it with no unsaved changes, while a snapshot is in flight, or mid-save
   // (a preview taken during a save would capture an ambiguous state).
   const previewDisabled =
+    !previewCodeSync ||
     (!hasUnsavedChanges && !hasUnsavedTranslations) ||
     creatingPreview ||
     saveDisabled;
+
+  // Tooltip on the disabled preview button. The sync gate takes priority — its
+  // fix (run the preview code sync) is a precondition for the others to matter.
+  const previewDisabledReason = !previewCodeSync
+    ? "Preview unavailable"
+    : "Make a change to save a preview";
 
   const isCommitting = state.matches({ editing: { preview: "committing" } });
   const previewLoading = state.hasTag("previewLoading");
@@ -659,6 +673,7 @@ export default function TemplateEditor({
           onSave={() => send({ type: "SAVE_REQUESTED" })}
           onPreview={handlePreview}
           previewDisabled={previewDisabled}
+          previewDisabledReason={previewDisabledReason}
           previewLoading={creatingPreview}
         />
       }
