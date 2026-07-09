@@ -16,8 +16,6 @@ interface SidebarSectionGroupProps {
   onAddSection?: (sectionId: string) => void;
   /** Validation errors for the section */
   sectionErrors?: any[];
-  /** Whether section is in library (removable) */
-  isInLibrary?: boolean;
   /** Selected widget ID for highlighting */
   selectedWidgetId?: string | null;
   /** Drag and drop props from dnd-kit */
@@ -38,7 +36,6 @@ export const SidebarSectionGroup: React.FC<SidebarSectionGroupProps> = ({
   isVisible = true,
   onAddSection,
   sectionErrors = [],
-  isInLibrary: _isInLibrary = false,
   selectedWidgetId,
   dragListeners,
   dragAttributes,

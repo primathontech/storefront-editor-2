@@ -8,6 +8,7 @@ import { PreviewIcon } from "./icons/PreviewIcon";
 import { TemplateSwitchDropdown } from "./TemplateSwitchDropdown";
 import type { ThemeStructureTemplate } from "../../services/api";
 import { useThemeStore } from "../../../stores/themeStore";
+import { formatThemeName } from "../../utils/theme-name";
 
 export type Device = "desktop" | "mobile" | "tablet" | "fullscreen";
 export type Mode = "edit" | "preview";
@@ -76,7 +77,9 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
   return (
     <header className={styles.header}>
       <div className={styles["left-container"]}>
-        <span className={styles["theme-name"]}>{theme?.name || theme?.id}</span>
+        <span className={styles["theme-name"]}>
+          {formatThemeName(theme?.name || theme?.id)}
+        </span>
       </div>
 
       <div className={styles["center-container"]}>

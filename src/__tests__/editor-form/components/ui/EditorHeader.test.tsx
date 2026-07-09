@@ -48,10 +48,10 @@ describe("EditorHeader — theme + slots", () => {
     expect(screen.getByTestId("template-switch")).toBeInTheDocument();
   });
 
-  it("falls back to the theme id when no name is set", () => {
+  it("prettifies the theme id when no name is set", () => {
     useThemeStore.setState({ theme: { id: "fallback-id" } as never });
     render(<EditorHeader {...baseProps} />);
-    expect(screen.getByText("fallback-id")).toBeInTheDocument();
+    expect(screen.getByText("Fallback Id")).toBeInTheDocument();
   });
 });
 
