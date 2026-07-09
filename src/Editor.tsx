@@ -11,7 +11,9 @@ import { SidebarChrome } from "./components/SidebarChrome";
 // Sidebar.module.css (0.5px #dfdfdf borders).
 //
 //   --editor-header-height (default 60px)
-//   --editor-left-width    (default 384px)
+//   --editor-left-width    (default 280px — kept narrow so the desktop preview
+//     clears the storefront's desktop breakpoint on common laptops instead of
+//     falling back to the tablet layout)
 //   right column is `auto` so the resizable settings panel sets its own width
 
 export interface EditorProps {
@@ -39,8 +41,8 @@ export const Editor = ({
         // to viewport-minus-header so the scroll areas get a bounded height.
         gridTemplateRows: "var(--editor-header-height, 60px) minmax(0, 1fr)",
         gridTemplateColumns: rightSidebar
-          ? "var(--editor-left-width, 384px) 1fr auto"
-          : "var(--editor-left-width, 384px) 1fr",
+          ? "var(--editor-left-width, 280px) 1fr auto"
+          : "var(--editor-left-width, 280px) 1fr",
         gridTemplateAreas: rightSidebar
           ? '"header header header" "leftSidebar preview rightSidebar"'
           : '"header header" "leftSidebar preview"',

@@ -178,6 +178,7 @@ const DynamicForm = React.forwardRef<HTMLDivElement, DynamicFormProps>(
           );
 
         case "menu-select":
+          if (value == null || value === "") return null;
           return (
             <FieldWrapper
               fieldHelperText={fieldHelperText}
