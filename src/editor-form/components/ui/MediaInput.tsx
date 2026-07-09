@@ -5,6 +5,8 @@ import {
   useMediaSelector,
   type MediaObject,
 } from "../../hooks/useMediaSelector";
+import { useAuthStore } from "../../../stores/authStore";
+import { resolveAssetUrl } from "../../utils/preview-route";
 import { Input as DesignInput, Button } from "./design-system";
 import { MediaIcon } from "./icons/MediaIcon";
 import styles from "./MediaInput.module.css";
@@ -35,6 +37,12 @@ export const MediaInput: React.FC<MediaInputProps> = ({
   disabled,
 }) => {
   const { openMediaSelector } = useMediaSelector();
+  // Merchant themes reference public/ assets by root-relative path, which only
+  // resolves against the storefront origin — rebase for the editor-origin
+  // thumbnail so it loads the same asset the iframe shows. Display-only: the
+  // stored value + URL field keep the raw relative path.
+  const previewOrigin = useAuthStore((s) => s.merchant?.previewOrigin);
+  const previewSrc = resolveAssetUrl(previewOrigin, value.src);
 
   const handleBrowse = useCallback(() => {
     openMediaSelector(
@@ -64,14 +72,14 @@ export const MediaInput: React.FC<MediaInputProps> = ({
           {kind === "image" ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={value.src}
+              src={previewSrc}
               alt={value.alt || "Preview"}
               className={styles.previewMedia}
             />
           ) : (
             // eslint-disable-next-line jsx-a11y/media-has-caption
             <video
-              src={value.src}
+              src={previewSrc}
               controls
               muted
               preload="metadata"

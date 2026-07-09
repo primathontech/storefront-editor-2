@@ -46,11 +46,23 @@ export function buildPreviewUrl(
   return `${origin}${safePath}?${params.toString()}`;
 }
 
+const stripTrailingSlash = (s: string): string => s.replace(/\/+$/, "");
+
+export function resolveAssetUrl(
+  previewOrigin: string | undefined,
+  path: string | undefined,
+): string | undefined {
+  if (typeof path !== "string" || !path.startsWith("/") || !previewOrigin) {
+    return path;
+  }
+  return `${stripTrailingSlash(previewOrigin)}${path}`;
+}
+
 export function rebasePreviewUrl(
   backendUrl: string,
   previewOrigin: string,
 ): string {
-  const origin = previewOrigin.replace(/\/+$/, "");
+  const origin = stripTrailingSlash(previewOrigin);
   // Drop scheme, then the host segment (everything up to the first "/" or "?"),
   let rest = (backendUrl || "")
     .replace(/^[a-z][a-z0-9+.-]*:\/\//i, "")
