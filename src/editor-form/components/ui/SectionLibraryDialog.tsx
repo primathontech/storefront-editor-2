@@ -7,18 +7,7 @@ import Dialog from "./Dialog";
 import { GenerateDialog } from "./GenerateDialog";
 import generateStyles from "./GenerateDialog.module.css";
 import styles from "./SectionLibraryDialog.module.css";
-
-// previewImage paths come from the merchant's section library as
-// relative paths into their public/ dir (e.g. `/common/section-
-// previews/custom-html.png`). Resolved against the preview origin
-// here at the <img> site — the API layer keeps the data shape pristine.
-const resolvePreviewImage = (
-  previewOrigin: string | undefined,
-  path: string | undefined,
-): string | undefined =>
-  typeof path === "string" && path.startsWith("/") && previewOrigin
-    ? `${previewOrigin}${path}`
-    : path;
+import { resolveAssetUrl } from "../../utils/preview-route";
 
 // SparkleIcon is also exported for HtmlInput's own AI-edit affordance —
 // kept here at the old import path so its consumer doesn't have to move.
@@ -223,7 +212,7 @@ export const SectionLibraryDialog: React.FC<SectionLibraryDialogProps> = ({
                           }}
                         >
                           <img
-                            src={resolvePreviewImage(previewOrigin, selected.previewImage)}
+                            src={resolveAssetUrl(previewOrigin, selected.previewImage)}
                             alt={selected.previewAlt}
                             className={styles["preview-image"]}
                           />

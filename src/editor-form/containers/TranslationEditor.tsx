@@ -21,7 +21,7 @@ import {
 } from "../translation-preview-bridge";
 import { translationSessionMachine } from "../../machines/translationSession";
 import { EditorAPI } from "../services/api";
-import { buildStaticPreviewUrl } from "../utils/preview-route";
+import { buildStaticPreviewUrl, resolveAssetUrl } from "../utils/preview-route";
 import { ArrayInput } from "../components/ui/ArrayInput";
 import { Input as DesignInput } from "../components/ui/design-system";
 import { ObjectArrayInput } from "../components/ui/ObjectArrayInput";
@@ -428,7 +428,7 @@ export default function TranslationEditor({
                         Image preview
                       </div>
                       <img
-                        src={String(value)}
+                        src={resolveAssetUrl(previewOrigin, String(value))}
                         alt={`Preview of ${label}`}
                         className="max-w-full h-24 object-contain border border-slate-200 rounded"
                         onError={(e) => {

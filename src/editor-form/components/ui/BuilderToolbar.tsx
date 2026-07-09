@@ -16,7 +16,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { focusSection } from "../../preview-bridge";
-import { useThemeStore } from "../../../stores/themeStore";
 import { useTemplateStore } from "../../../stores/templateStore";
 import { useEditorUiStore } from "../../../stores/editorUiStore";
 import styles from "./BuilderToolbar.module.css";
@@ -24,8 +23,6 @@ import { SectionLibraryDialog } from "./SectionLibraryDialog";
 import { SidebarSectionGroup } from "./SidebarSectionGroup";
 
 export default function BuilderToolbar() {
-  const availableSections = useThemeStore((s) => s.sections);
-
   const pageConfig = useTemplateStore((s) => s.pageConfig);
   const device = useEditorUiStore((s) => s.device);
   const {
@@ -58,24 +55,6 @@ export default function BuilderToolbar() {
   const handleAddSectionFromLibrary = (libraryKey: string) => {
     addSectionFromLibrary(libraryKey, insertAfterIndex);
     handleCloseAddSectionModal();
-  };
-
-  // Check if a section exists in the available sections library
-  const isSectionInLibrary = (sectionId: string): boolean => {
-    // Check if section id exactly matches a library section id (template sections like "header-section")
-    // OR if section id starts with a library section id + dash (library-added sections like "header-section-abc123")
-    return Object.values(availableSections).some((section: any) => {
-      const libraryId = section.id;
-      // Exact match (template sections)
-      if (sectionId === libraryId) {
-        return true;
-      }
-      // Starts with library id + dash (library-added sections with nanoid)
-      if (sectionId.startsWith(libraryId + "-")) {
-        return true;
-      }
-      return false;
-    });
   };
 
   const handleWidgetSelect = (widgetId: string, sectionId: string) => {
@@ -158,7 +137,6 @@ export default function BuilderToolbar() {
             setIsAddSectionModalOpen(true);
           }}
           sectionErrors={htmlValidationErrors[section.id] || []}
-          isInLibrary={isSectionInLibrary(section.id)}
           selectedWidgetId={selectedWidgetId}
         />
       </div>

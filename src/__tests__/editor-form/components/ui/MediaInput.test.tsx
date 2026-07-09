@@ -7,9 +7,10 @@
 // window.parent and resolves when a MEDIA_SELECTED message arrives. We drive
 // that by spying on window.parent.postMessage and dispatching the response
 // event the module-scoped listener expects.
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, within, act } from "@testing-library/react";
 import { MediaInput } from "../../../../editor-form/components/ui/MediaInput";
+import { useAuthStore } from "../../../../stores/authStore";
 
 const VALUE = { src: "", alt: "" };
 
@@ -90,6 +91,57 @@ describe("MediaInput — rendering", () => {
     );
     expect(container.querySelector("img")).toBeNull();
     expect(container.querySelector("video")).toBeNull();
+  });
+});
+
+describe("MediaInput — merchant asset rebasing", () => {
+  afterEach(() => {
+    act(() => {
+      useAuthStore.setState({ merchant: null });
+    });
+  });
+
+  it("rebases a root-relative src onto the preview origin for the thumbnail, keeping the URL field raw", () => {
+    useAuthStore.setState({
+      merchant: {
+        id: "m",
+        themeId: "t",
+        previewOrigin: "http://localhost:4344",
+      },
+    });
+    const { container } = render(
+      <MediaInput
+        kind="image"
+        value={{ src: "/assets/momsco/hero.webp", alt: "" }}
+        onChange={vi.fn()}
+      />,
+    );
+    // Thumbnail loads from the storefront origin...
+    expect(container.querySelector("img")?.getAttribute("src")).toBe(
+      "http://localhost:4344/assets/momsco/hero.webp",
+    );
+    // ...but the stored/edited value stays the raw relative path (display-only).
+    expect(inputByLabel("Image URL")?.value).toBe("/assets/momsco/hero.webp");
+  });
+
+  it("leaves an absolute (library) src untouched regardless of preview origin", () => {
+    useAuthStore.setState({
+      merchant: {
+        id: "m",
+        themeId: "t",
+        previewOrigin: "http://localhost:4344",
+      },
+    });
+    const { container } = render(
+      <MediaInput
+        kind="image"
+        value={{ src: "https://cdn/lib.png", alt: "" }}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(container.querySelector("img")?.getAttribute("src")).toBe(
+      "https://cdn/lib.png",
+    );
   });
 });
 
