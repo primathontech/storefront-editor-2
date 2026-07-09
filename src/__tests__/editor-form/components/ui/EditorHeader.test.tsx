@@ -20,6 +20,7 @@ vi.mock(
 );
 
 import EditorHeader, {
+  formatThemeName,
   type SaveStatus,
 } from "../../../../editor-form/components/ui/EditorHeader";
 import { useThemeStore } from "../../../../stores/themeStore";
@@ -48,10 +49,29 @@ describe("EditorHeader — theme + slots", () => {
     expect(screen.getByTestId("template-switch")).toBeInTheDocument();
   });
 
-  it("falls back to the theme id when no name is set", () => {
+  it("prettifies the theme id when no name is set", () => {
     useThemeStore.setState({ theme: { id: "fallback-id" } as never });
     render(<EditorHeader {...baseProps} />);
-    expect(screen.getByText("fallback-id")).toBeInTheDocument();
+    expect(screen.getByText("Fallback Id")).toBeInTheDocument();
+  });
+});
+
+describe("formatThemeName", () => {
+  it("strips the 2.0 disambiguation suffix and prettifies slug-like values", () => {
+    expect(formatThemeName("BBLUNT-2")).toBe("Bblunt");
+    expect(formatThemeName("WELLVERSED-2")).toBe("Wellversed");
+    expect(formatThemeName("PLIXKIDS2")).toBe("Plixkids");
+    expect(formatThemeName("DAWN")).toBe("Dawn");
+    expect(formatThemeName("weryze")).toBe("Weryze");
+  });
+
+  it("leaves intentional names (spaced or mixed-case) untouched", () => {
+    expect(formatThemeName("Moms Co")).toBe("Moms Co");
+    expect(formatThemeName("MyTheme")).toBe("MyTheme");
+  });
+
+  it("returns an empty string for an absent value", () => {
+    expect(formatThemeName(undefined)).toBe("");
   });
 });
 
