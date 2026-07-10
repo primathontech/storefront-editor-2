@@ -65,7 +65,7 @@ pipeline {
                     ls
                     CI=false
                     npm set progress=true
-                    rm -rf node_modules
+                    rm -rf node_modules package-lock.json
                     npm install --legacy-peer-deps
                     npm run build
                     ls
