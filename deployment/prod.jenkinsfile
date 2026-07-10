@@ -1,0 +1,94 @@
+#!/usr/bin/env groovy
+
+properties([
+        parameters([
+                //string(name: 'BRANCH_NAME', defaultValue: 'DEVOPS', description: 'Name of the supporting repo branch'),
+                booleanParam(name: 'RELOAD_JF', defaultValue: false, description: 'For DevOps use only. Default: false')
+
+        ])
+])
+pipeline {
+    agent any
+    tools {
+            nodejs "nodejs20.12"
+        }
+    stages {
+
+        stage('Read Jenkinsfile') {
+            when {
+                expression { params.RELOAD_JF == true }
+            }
+            steps {
+                echo("Ended pipeline early.")
+            }
+        }
+        stage('Modify config repo') {
+            when {
+                expression { params.RELOAD_JF == false }
+            }
+            steps {
+
+                sh '''
+                ls -alrt
+            printf "Inside config repo"
+              cat deployment/prod-deployment.jenkinsfile
+               if [ "master" = "master" ]; then
+                            for pod in master; do
+                            WORKING_DIR=os-editor-${pod}
+                            WORKING_DIR2=../os-editor-${pod}
+                            if [ -d "$WORKING_DIR" ]; then rm -Rf "$WORKING_DIR"; fi
+                            if [ -d "$WORKING_DIR2" ]; then rm -Rf "$WORKING_DIR2"; fi
+                            mkdir -p ../os-editor-${pod}
+                            cp -r ./* ../os-editor-${pod}
+                            aws s3 cp s3://gkwk-prod-cicd/dot-env/frontend/kwikcart/os-editor/prod/.env ../os-editor-${pod}
+                            done
+
+                        fi
+            '''
+
+
+            }
+        }
+        stage('Deploying main Branch') {
+            when {
+                         expression { params.RELOAD_JF == false }
+                     }
+            steps {
+
+                    sh '''
+                    if [ "master" = "master" ]; then
+                    for pod in master; do
+                    ls -alrt
+                    pwd
+                    cd ../os-editor-${pod}
+                    pwd
+                    ls
+                    CI=false
+                    npm set progress=true
+                    npm install --legacy-peer-deps
+                    npm run build
+                    ls
+                    rm -rf ../gkwk-os-editor-${pod}
+                    mkdir ../gkwk-os-editor-${pod}
+                    cp -r ./dist/* ../gkwk-os-editor-${pod}
+                    cd ../gkwk-os-editor-${pod}/
+
+
+                        if [ "master" = "master" ]; then
+                            CFDISTRIBUTIONID=E3CJZT0794S5J9
+                            aws s3 cp . s3://gkwk-prod-ratio-visual-editor/ --exclude "js/*" --recursive
+                            akamai purge --edgerc ~/.edgerc --section default invalidate --cpcode 2029372 || true
+
+
+                        elif [ "master" = "dev" ]; then
+                                           echo "dev or related branch can be deployed from dev jenkins"
+
+                        fi
+                   done
+                   fi
+                            '''
+
+            }
+        }
+    }
+}
