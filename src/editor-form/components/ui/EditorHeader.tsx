@@ -5,7 +5,8 @@ import { HeaderMonitorIcon } from "./icons/HeaderMonitorIcon";
 import { HeaderStackedIcon } from "./icons/HeaderStackedIcon";
 import { HeaderTabletIcon } from "./icons/HeaderTabletIcon";
 import { PreviewIcon } from "./icons/PreviewIcon";
-import { TemplateSwitchDropdown } from "./TemplateSwitchDropdown";
+import { TemplatePicker } from "./TemplatePicker";
+import { TemplateActionsMenu } from "./TemplateActionsMenu";
 import type { ThemeStructureTemplate } from "../../services/api";
 import { useThemeStore } from "../../../stores/themeStore";
 import { formatThemeName } from "../../utils/theme-name";
@@ -84,7 +85,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
 
       <div className={styles["center-container"]}>
         <div className={styles["template-dropdown-wrapper"]}>
-          <TemplateSwitchDropdown onSwitchTemplate={onSwitchTemplate} />
+          <TemplatePicker onSwitchTemplate={onSwitchTemplate} />
         </div>
       </div>
 
@@ -134,32 +135,41 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
             </Button>
           </span>
 
-          {/* span carries the hint: a native title doesn't show on a
-              disabled <button>. Only set when Save is disabled at rest. */}
-          <span
-            title={
-              saveDisabled && saveStatus === "idle"
-                ? "Nothing to publish"
-                : undefined
-            }
-            style={{ display: "inline-flex" }}
-          >
-            <Button
-              variant="primary"
-              size="md"
-              onClick={onSave}
-              disabled={saveDisabled}
-              loading={isSaving}
+          {/* Publish + the active-template actions (⋮) sit together as one
+              group; the ⋮ hugs Publish rather than a full gap away. */}
+          <div className="inline-flex items-center gap-1">
+            {/* span carries the hint: a native title doesn't show on a
+                disabled <button>. Only set when Save is disabled at rest. */}
+            <span
               title={
-                saveStatus === "failed"
-                  ? "Last publish failed"
-                  : "Publish to live"
+                saveDisabled && saveStatus === "idle"
+                  ? "Nothing to publish"
+                  : undefined
               }
-              style={{ minWidth: "100px" }}
+              style={{ display: "inline-flex" }}
             >
-              {SAVE_LABEL[saveStatus]}
-            </Button>
-          </span>
+              <Button
+                variant="primary"
+                size="md"
+                onClick={onSave}
+                disabled={saveDisabled}
+                loading={isSaving}
+                title={
+                  saveStatus === "failed"
+                    ? "Last publish failed"
+                    : "Publish to live"
+                }
+                style={{ minWidth: "100px" }}
+              >
+                {SAVE_LABEL[saveStatus]}
+              </Button>
+            </span>
+
+            {/* ⋮ actions: Delete (Rename later). Shown only for product /
+                collection templates; Delete is disabled with a tooltip on the
+                default template. */}
+            <TemplateActionsMenu onSwitchTemplate={onSwitchTemplate} />
+          </div>
         </div>
       </div>
     </header>

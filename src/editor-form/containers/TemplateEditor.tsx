@@ -224,10 +224,34 @@ export default function TemplateEditor({
       // backend builds it from merchant.url, which may be a stale/relative
       // domain. We keep only its path+query and use previewOrigin as the host.
       const origin = useAuthStore.getState().merchant?.previewOrigin;
-      setPreviewLink({
-        url: origin ? rebasePreviewUrl(url, origin) : url,
-        version,
-      });
+      const baseUrl = origin ? rebasePreviewUrl(url, origin) : url;
+      // Append `?view={suffix}` so the merchant side can render THIS template
+      // on the sample resource (PRD §5.5). The suffix is the template id's tail
+      // after `{merchant}_{templateName}_` (e.g. dawn_products_promo → "promo",
+      // dawn_products_default → "default").
+      const templateName = tmpl.routeContext?.templateName;
+      const prefix = templateName ? `${themeId}_${templateName}_` : "";
+      const viewSuffix =
+        prefix && tmpl.id.startsWith(prefix)
+          ? tmpl.id.slice(prefix.length)
+          : (tmpl.variant ?? tmpl.id);
+      // `type` = the page type (templateName) so the merchant can type-scope
+      // the forced suffix (only that page type is forced, not chrome).
+      let finalUrl = baseUrl;
+      try {
+        const u = new URL(baseUrl);
+        u.searchParams.set("view", viewSuffix);
+        if (templateName) u.searchParams.set("type", templateName);
+        finalUrl = u.toString();
+      } catch {
+        // Relative/malformed URL — append manually.
+        const sep = baseUrl.includes("?") ? "&" : "?";
+        const extra =
+          `view=${encodeURIComponent(viewSuffix)}` +
+          (templateName ? `&type=${encodeURIComponent(templateName)}` : "");
+        finalUrl = `${baseUrl}${sep}${extra}`;
+      }
+      setPreviewLink({ url: finalUrl, version });
     } catch (err) {
       console.error("getPreviewLink failed", err);
       toast.error("Couldn't save the preview.");
@@ -415,6 +439,8 @@ export default function TemplateEditor({
               layout: pc.layout,
               sections: pageSections,
               dataSources: pc.dataSources,
+              // Publish promotes the template to live (draft → published).
+              isTemplateLive: true,
             });
             // Purge the merchant's whole preview session now that it's live.
             // By merchant (not previewId) so it clears regardless of which
@@ -700,13 +726,11 @@ export default function TemplateEditor({
                 aria-hidden
               >
                 <div
-                  className="h-full w-1/3 bg-linear-to-r from-blue-500 via-sky-400 to-blue-600 transition-opacity duration-150"
-                  style={{
-                    opacity: isCommitting ? 1 : 0,
-                    animation: isCommitting
-                      ? "editorPreviewProgress 1.2s ease-in-out infinite"
-                      : "none",
-                  }}
+                  className={`h-full w-1/3 bg-linear-to-r from-blue-500 via-sky-400 to-blue-600 transition-opacity duration-150 ${
+                    isCommitting
+                      ? "opacity-100 animate-[editorPreviewProgress_1.2s_ease-in-out_infinite]"
+                      : "opacity-0 animate-none"
+                  }`}
                 />
               </div>
               <iframe
