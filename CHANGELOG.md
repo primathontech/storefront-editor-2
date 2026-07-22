@@ -1,5 +1,13 @@
 # visual-editor
 
+## 0.0.4
+
+### Patch Changes
+
+- Updated dependencies [2761b96]
+- Updated dependencies
+  - @shopkit/editor-bridge@0.8.0
+
 ## 0.0.3
 
 ### Patch Changes

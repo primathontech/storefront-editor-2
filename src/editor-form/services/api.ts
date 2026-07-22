@@ -69,6 +69,9 @@ export interface ThemeStructureTemplate {
   variant?: string;
   isDynamic?: boolean;
   supportedLanguages?: string[];
+  /** Published state. Absent/true ⇒ live; false ⇒ draft (newly created, not
+   *  yet published). Set by the create-template API; flipped true on Publish. */
+  isTemplateLive?: boolean;
   routeContext?: {
     templateName?: string;
     type?: string;
@@ -80,7 +83,10 @@ export interface ThemeStructureTemplate {
 }
 export interface ThemeStructureGroup {
   name: string;
+  /** Mirrors the template's published state at the group level. */
+  isTemplateLive?: boolean;
   templates?: ThemeStructureTemplate[];
+  [key: string]: unknown;
 }
 export interface ThemeStructure {
   id: string;
@@ -233,6 +239,9 @@ export class EditorAPI {
       layout?: unknown;
       sections: unknown[];
       dataSources: Record<string, unknown>;
+      /** Publish signal — promotes the template to live (backend stamps
+       *  isTemplateLive on the row + templateStructure). Sent by Publish. */
+      isTemplateLive?: boolean;
     },
   ): Promise<{
     templateId: string;
@@ -252,6 +261,87 @@ export class EditorAPI {
       throw new Error("Save template response missing data");
     }
     return { ...result, message: json?.message };
+  }
+
+  /**
+   * Create a new template (draft by default — `isTemplateLive: false`).
+   * Inserts the template row AND appends `structureNode` to the theme's
+   * `templateStructure` so the editor switcher / Admin list can see it.
+   * POST /api/v1/themes/{themeId}/templates
+   */
+  static async createTemplate(
+    themeId: string,
+    body: {
+      id: string;
+      name: string;
+      pageConfig: unknown;
+      isTemplateLive?: boolean;
+      structureNode: ThemeStructureGroup;
+      metadata?: Record<string, unknown>;
+    },
+  ): Promise<{
+    templateId: string;
+    version: string;
+    isTemplateLive: boolean;
+    createdAt: string;
+  }> {
+    const json = await editorBe
+      .post(`api/v1/themes/${themeId}/templates`, { json: body })
+      .json<
+        ApiEnvelope<{
+          data?: {
+            templateId: string;
+            version: string;
+            isTemplateLive: boolean;
+            createdAt: string;
+          };
+        }>
+      >();
+    // BE double-wraps: envelope.data.data holds the result.
+    const result = (json?.data as { data?: unknown })?.data ?? json?.data;
+    if (!result) {
+      throw new Error("Create template response missing data");
+    }
+    return result as {
+      templateId: string;
+      version: string;
+      isTemplateLive: boolean;
+      createdAt: string;
+    };
+  }
+
+  /**
+   * Delete a template. Removes the live row, its `templateStructure` node, and
+   * its translations. The backend rejects deleting a default template (400).
+   * Any product/collection assigned to it falls back to the default template
+   * on the storefront. DELETE /api/v1/themes/{themeId}/templates/{templateId}
+   */
+  static async deleteTemplate(
+    themeId: string,
+    templateId: string,
+  ): Promise<void> {
+    await editorBe.delete(
+      `api/v1/themes/${themeId}/templates/${encodeURIComponent(templateId)}`,
+    );
+  }
+
+  /**
+   * Rename a template — display NAME only. id / suffix / pageConfig are
+   * immutable; the backend rejects renaming a default template (400). The new
+   * name is mirrored onto `templateStructure`, so the editor switcher and the
+   * Admin list reflect it. PATCH /api/v1/themes/{themeId}/templates/{templateId}
+   */
+  static async renameTemplate(
+    themeId: string,
+    templateId: string,
+    name: string,
+  ): Promise<{ templateId: string; name: string }> {
+    const json = await editorBe
+      .patch(`api/v1/themes/${themeId}/templates/${encodeURIComponent(templateId)}`, {
+        json: { name },
+      })
+      .json<ApiEnvelope<{ templateId: string; name: string }>>();
+    return json?.data ?? { templateId, name };
   }
 
   static async saveTranslation(
