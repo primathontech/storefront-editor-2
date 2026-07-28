@@ -12,7 +12,9 @@ import { useThemeStore } from "../../../stores/themeStore";
 import { useAuthStore } from "../../../stores/authStore";
 import { Popover } from "./Popover";
 import { Button, Modal } from "./design-system";
-import { KebabIcon, PencilIcon, TrashIcon } from "./icons/template-picker-icons";
+// TrashIcon commented out — the Delete-template button is temporarily disabled
+// (branch: delete-template-commented). Re-enable it with the Delete button below.
+import { KebabIcon, PencilIcon /* , TrashIcon */ } from "./icons/template-picker-icons";
 
 // Shared field-box look for text inputs — identical to CreateTemplateModal so
 // the Create / Rename dialogs line up the same way.
@@ -188,11 +190,13 @@ export const TemplateActionsMenu: React.FC<TemplateActionsMenuProps> = ({
   const canManage = isTemplatable && !currentIsDefault;
   // "default" is reserved — gate the Rename button + show an inline hint.
   const renameReserved = renameValue.trim().toLowerCase() === "default";
-  const deleteTooltip = !isTemplatable
-    ? "Only product and collection templates can be deleted"
-    : currentIsDefault
-      ? "Can't delete the default template"
-      : undefined;
+  // Delete-template feature temporarily disabled (branch: delete-template-commented).
+  // Tooltip kept commented for easy re-enable alongside the Delete button below.
+  // const deleteTooltip = !isTemplatable
+  //   ? "Only product and collection templates can be deleted"
+  //   : currentIsDefault
+  //     ? "Can't delete the default template"
+  //     : undefined;
   const renameTooltip = !isTemplatable
     ? "Only product and collection templates can be renamed"
     : currentIsDefault
@@ -249,6 +253,11 @@ export const TemplateActionsMenu: React.FC<TemplateActionsMenuProps> = ({
           Rename template
         </button>
 
+        {/* Delete template button — TEMPORARILY DISABLED (branch:
+            delete-template-commented). The delete handler (handleDeleteCurrent),
+            its state, and the Delete modal below are intentionally left intact so
+            this can be re-enabled by uncommenting: this button, the `deleteTooltip`
+            declaration above, and the `TrashIcon` import at the top.
         <button
           type="button"
           role="menuitem"
@@ -272,6 +281,7 @@ export const TemplateActionsMenu: React.FC<TemplateActionsMenuProps> = ({
           </span>
           Delete template
         </button>
+        */}
       </Popover>
 
       {/* Delete — same Modal shell as Create (header / body / footer). A LIVE
