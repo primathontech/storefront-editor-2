@@ -1,0 +1,100 @@
+#!/usr/bin/env groovy
+properties([
+        parameters([
+                string(name: 'BRANCH_NAME', defaultValue: 'DEVOPS', description: 'Name of the supporting repo branch'),
+                [$class: 'ChoiceParameter', choiceType: 'PT_SINGLE_SELECT', description: 'Target Env i.e sandbox/qa/dev', filterLength: 1, filterable: false, name: 'ENV_NAME', randomName: 'choice-parameter-13649102736916759', script: [$class: 'GroovyScript', fallbackScript: [classpath: [], sandbox: false, script: ''], script: [classpath: [], sandbox: false, script: '''return [
+                \'dev\',
+                \'sandbox\',
+                \'qa\'
+                ]''']]],
+                booleanParam(name: 'RELOAD_JF', defaultValue: false, description: 'For DevOps use only. Default: false')
+        ])
+])
+pipeline {
+    agent any
+    environment {
+        APP_ENV = EnvironmentName()
+    }
+    tools {
+            nodejs "nodejs20.12"
+        }
+    stages {
+        stage('Read Jenkinsfile') {
+            when {
+                expression { params.RELOAD_JF == true }
+            }
+            steps {
+                echo("Ended pipeline early.")
+            }
+        }
+        stage('Modify config repo') {
+            when {
+                expression { params.RELOAD_JF == false }
+            }
+            steps {
+                 sh '''
+                                   ls -alrt
+                               printf "Inside config repo"
+                               if [ "${ENV_NAME}" = "dev" ] || [ "${ENV_NAME}" = "sandbox" ]  || [ "${ENV_NAME}" = "qa" ]; then
+                                               for pod in ${ENV_NAME}; do
+                                               WORKING_DIR=os-editor-${pod}
+                                               WORKING_DIR2=../os-editor-${pod}
+                                               if [ -d "$WORKING_DIR" ]; then rm -Rf "$WORKING_DIR"; fi
+                                               if [ -d "$WORKING_DIR2" ]; then rm -Rf "$WORKING_DIR2"; fi
+                                               mkdir -p ../os-editor-${pod}
+                                               cp -r ./* ../os-editor-${pod}
+                                               aws s3 cp s3://gkwk-dev-cicd/dot-env/frontend/os-editor/${pod}/.env ../os-editor-${pod}
+                                               done
+                                           fi
+                               '''
+            }
+        }
+        stage('Deploying main Branch') {
+            when {
+                         expression { params.RELOAD_JF == false }
+                     }
+            steps {
+                    sh '''
+                                        if  [ "${ENV_NAME}" = "dev" ] || [ "${ENV_NAME}" = "sandbox" ]  || [ "${ENV_NAME}" = "qa" ]; then
+                                        for pod in ${ENV_NAME}; do
+                                        ls -alrt
+                                        pwd
+                                        cd ../os-editor-${ENV_NAME}
+                                        pwd
+                                        ls
+                                        CI=false
+                                        npm set progress=true
+                                        npm install --legacy-peer-deps
+                                        npm run build
+                                        ls
+                                        rm -rf ../gkwk-os-editor-${ENV_NAME}
+                                        mkdir ../gkwk-os-editor-${ENV_NAME}
+                                        cp -r ./dist/* ../gkwk-os-editor-${ENV_NAME}
+                                        cd ../gkwk-os-editor-${ENV_NAME}/
+
+                                            if [ "${ENV_NAME}" = "qa" ]; then
+                                                CFDISTRIBUTIONID=ELJMLKPZ2MJG6
+                                                aws s3 cp . s3://gkwk-qa-os-editor-bucket/ --exclude "js/*"  --recursive
+                                                aws cloudfront create-invalidation --distribution-id $CFDISTRIBUTIONID --paths "/*"
+                                            elif [ "${ENV_NAME}" = "sandbox" ]; then
+                                                CFDISTRIBUTIONID=E3CJFQ50HQ1BBY
+                                                aws s3 cp . s3://gkwk-sandbox-os-editor-bucket/ --exclude "js/*"  --recursive
+                                                aws cloudfront create-invalidation --distribution-id $CFDISTRIBUTIONID --paths "/*"
+                                            elif [ "${ENV_NAME}" = "dev" ]; then
+                                                CFDISTRIBUTIONID=ED2OOJP7CUJ5H
+                                                aws s3 cp . s3://gkwk-dev-ratio-visual-editor/ --exclude "js/*" --recursive
+                                                aws cloudfront create-invalidation --distribution-id $CFDISTRIBUTIONID --paths "/*"
+                                                akamai purge --edgerc /var/lib/jenkins/.edgerc --section default invalidate --cpcode 1893785
+                                            fi
+                                       done
+                                       elif [ "${ENV_NAME}" = "main" ]; then
+                                       echo "master or main branch can be deployed from prod jenkins"
+                                       fi
+                                                '''
+            }
+        }
+    }
+}
+def EnvironmentName() {
+    return ENV_NAME
+}
