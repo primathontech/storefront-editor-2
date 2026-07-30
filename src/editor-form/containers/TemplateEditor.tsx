@@ -25,7 +25,7 @@ import { EditorAPI } from "../services/api";
 import { templateSessionMachine } from "../../machines/templateSession";
 import type { ThemeStructure, ThemeStructureTemplate } from "../services/api";
 import { RESPONSIVE_FRAME_STYLE } from "../utils/preview-frame-style";
-import { buildPreviewUrl, rebasePreviewUrl } from "../utils/preview-route";
+import { buildInternalPreviewUrl, rebasePreviewUrl } from "../utils/preview-route";
 import { resolveSectionSettings } from "../utils/translation-utils";
 
 // Find the header/footer template IDs from the theme structure. Chrome
@@ -103,7 +103,6 @@ export default function TemplateEditor({
   const hasUnsavedTranslations = useTemplateStore(
     (s) => s.hasUnsavedTranslations,
   );
-  const activePreviewId = useTemplateStore((s) => s.activePreviewId);
   const previewCodeSync = useThemeStore((s) => s.previewCodeSync);
   const [creatingPreview, setCreatingPreview] = useState(false);
   const [previewLink, setPreviewLink] = useState<{
@@ -586,6 +585,8 @@ export default function TemplateEditor({
         iframeWindow: win,
         previewOrigin,
         getTs: () => useTemplateStore.getState().translationService,
+        getRouteContext: () =>
+          useThemeStore.getState().currentTemplate?.routeContext ?? null,
         onSelect: (target) => {
           const store = useTemplateStore.getState();
           if (!target) {
@@ -670,16 +671,10 @@ export default function TemplateEditor({
 
   const isCommitting = state.matches({ editing: { preview: "committing" } });
   const previewLoading = state.hasTag("previewLoading");
-  // Carry the active "Save and Preview" draft id into the iframe URL so the
-  // INITIAL render resolves the draft (no live→draft flip on reload). The
-  // iframe mounts only after boot, by which point fetchTemplateData has set
-  // activePreviewId, so the very first paint already has it. Reused id ⇒ stable
-  // URL (no reload on subsequent saves); cleared on publish ⇒ reloads to live.
-  const previewUrl = buildPreviewUrl(
-    previewOrigin,
-    currentTemplate.routeContext?.path,
-    activePreviewId ? { previewId: activePreviewId } : undefined,
-  );
+  // Live preview renders on the dedicated /internal-preview route; EditorHost
+  // commits the config under a ?previewKey. (External "Save and Preview" is a
+  // separate flow via getPreviewLink.)
+  const previewUrl = buildInternalPreviewUrl(previewOrigin);
 
   const isBooting = state.matches("bootingTemplate");
   const isLoadError = state.matches("loadError");

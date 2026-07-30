@@ -59,6 +59,9 @@ interface BridgeArgs {
    *  the wire. Function (not a captured ref) so the channel always sees
    *  the latest TranslationService instance after language switches. */
   getTs: () => TranslationService | null;
+  /** Current routeContext, sent with each applyConfig so the preview route
+   *  knows what the config renders as. */
+  getRouteContext: () => unknown;
   /** Iframe's currently-selected section/widget. null when cleared. */
   onSelect: (target: SelectionTarget | null) => void;
   /** A commitServer call has started — used to flip the editor's
@@ -239,6 +242,9 @@ export function commitServer(pageConfig: unknown): void {
       sections: resolveSectionSettings(bodySections, ts),
     };
     args.onCommitFired();
-    channel.send("applyConfig", { pageConfig: resolved });
+    channel.send("applyConfig", {
+      pageConfig: resolved,
+      routeContext: args.getRouteContext(),
+    });
   }, COMMIT_DEBOUNCE_MS);
 }
