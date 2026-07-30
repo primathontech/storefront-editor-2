@@ -90,9 +90,28 @@ export const templateSessionMachine = setup({
             // it becomes visible. Without this gate the iframe would
             // paint the un-edited backend pageConfig once, with raw
             // t:-refs, before any user edit happened.
+            //
+            // Wait for our OWN commit to fire (COMMIT_FIRED) before we start
+            // accepting a settle — symmetric with the normal idle→committing→
+            // idle path. requestInitialCommit is debounced, so a stray
+            // rendering:false from the iframe (e.g. useTransition's pending=
+            // false at mount) lands in the meantime; not handling
+            // COMMIT_SETTLED here ignores it, so the overlay can't lift early
+            // onto a chrome-only, body-less frame.
             committingInitial: {
               tags: "previewLoading",
               entry: "requestInitialCommit",
+              on: {
+                COMMIT_FIRED: "awaitingInitialSettle",
+                COMMIT_FAILED: "commitFailed",
+              },
+              after: { 8000: "commitFailed" },
+            },
+            // applyConfig is on the wire; hold the overlay until the soft-nav
+            // paints the body (COMMIT_SETTLED) so the frame reveals chrome +
+            // body together.
+            awaitingInitialSettle: {
+              tags: "previewLoading",
               on: {
                 COMMIT_SETTLED: "idle",
                 COMMIT_FAILED: "commitFailed",
