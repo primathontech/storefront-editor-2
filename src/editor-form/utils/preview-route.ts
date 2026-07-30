@@ -26,6 +26,16 @@ export function isUnhydratedPath(path: string | undefined): boolean {
   return /\[[^\]]+\]/.test(path) || /:[A-Za-z]/.test(path);
 }
 
+/**
+ * Iframe URL for the INTERNAL live preview (dedicated /internal-preview route).
+ * EditorHost commits pageConfig + routeContext under a ?previewKey and the route
+ * resolves from that. Distinct from buildPreviewUrl (external share flow).
+ */
+export function buildInternalPreviewUrl(origin: string): string {
+  // ?editor=true activates EditorHost's gate (null otherwise); the route ignores it.
+  return `${origin}/internal-preview?editor=true`;
+}
+
 export function buildPreviewUrl(
   origin: string,
   path: string | undefined,
