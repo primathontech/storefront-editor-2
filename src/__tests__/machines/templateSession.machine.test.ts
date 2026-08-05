@@ -49,7 +49,7 @@ describe("templateSessionMachine — boot", () => {
 });
 
 describe("templateSessionMachine — preview commit lifecycle", () => {
-  it("IFRAME_LOADED → committingInitial fires requestInitialCommit, then COMMIT_SETTLED → idle", async () => {
+  it("IFRAME_LOADED → committingInitial fires requestInitialCommit; a pre-fire COMMIT_SETTLED is ignored; COMMIT_FIRED → awaitingInitialSettle → COMMIT_SETTLED → idle", async () => {
     const { actor, requestInitialCommit } = boot();
     await waitFor(actor, (s) => s.matches("editing"), { timeout: 2000 });
 
@@ -58,6 +58,23 @@ describe("templateSessionMachine — preview commit lifecycle", () => {
       actor.getSnapshot().matches({ editing: { preview: "committingInitial" } }),
     ).toBe(true);
     expect(requestInitialCommit).toHaveBeenCalledTimes(1);
+
+    // A stray settle before our own commit fires (e.g. the iframe's
+    // useTransition pending=false at mount) must NOT lift the overlay.
+    actor.send({ type: "COMMIT_SETTLED" });
+    expect(
+      actor.getSnapshot().matches({ editing: { preview: "committingInitial" } }),
+    ).toBe(true);
+    expect(actor.getSnapshot().hasTag("previewLoading")).toBe(true);
+
+    // Our commit goes out, THEN it settles → overlay lifts on chrome + body.
+    actor.send({ type: "COMMIT_FIRED" });
+    expect(
+      actor
+        .getSnapshot()
+        .matches({ editing: { preview: "awaitingInitialSettle" } }),
+    ).toBe(true);
+    expect(actor.getSnapshot().hasTag("previewLoading")).toBe(true);
 
     actor.send({ type: "COMMIT_SETTLED" });
     const snap = actor.getSnapshot();
@@ -69,6 +86,7 @@ describe("templateSessionMachine — preview commit lifecycle", () => {
     const { actor } = boot();
     await waitFor(actor, (s) => s.matches("editing"), { timeout: 2000 });
     actor.send({ type: "IFRAME_LOADED" });
+    actor.send({ type: "COMMIT_FIRED" }); // → awaitingInitialSettle
     actor.send({ type: "COMMIT_SETTLED" }); // → idle
     actor.send({ type: "COMMIT_FIRED" });
     expect(actor.getSnapshot().matches({ editing: { preview: "committing" } })).toBe(true);

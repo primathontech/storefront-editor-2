@@ -47,6 +47,7 @@ function reg() {
     iframeWindow: {} as Window,
     previewOrigin: "http://localhost:4344",
     getTs: () => ts,
+    getRouteContext: () => null,
     ...cbs,
   });
   return cbs;

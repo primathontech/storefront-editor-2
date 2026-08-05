@@ -124,6 +124,54 @@ describe("Modal — default footer", () => {
   });
 });
 
+describe("Modal — close button", () => {
+  it("renders a close button that calls onClose", () => {
+    const onClose = vi.fn();
+    render(
+      <Modal isOpen onClose={onClose} title="t">
+        x
+      </Modal>
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Close dialog" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders the close button even without a title", () => {
+    render(
+      <Modal isOpen onClose={() => {}}>
+        x
+      </Modal>
+    );
+    expect(
+      screen.getByRole("button", { name: "Close dialog" })
+    ).toBeInTheDocument();
+  });
+});
+
+describe("Modal — backdrop", () => {
+  it("calls onClose when the backdrop is clicked", () => {
+    const onClose = vi.fn();
+    render(
+      <Modal isOpen onClose={onClose} title="t">
+        x
+      </Modal>
+    );
+    fireEvent.click(screen.getByRole("dialog"));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not close on backdrop click when closeOnBackdrop is false", () => {
+    const onClose = vi.fn();
+    render(
+      <Modal isOpen onClose={onClose} title="t" closeOnBackdrop={false}>
+        x
+      </Modal>
+    );
+    fireEvent.click(screen.getByRole("dialog"));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
 describe("Modal — escape key", () => {
   it("calls onClose when Escape is pressed while open", () => {
     const onClose = vi.fn();
@@ -134,6 +182,17 @@ describe("Modal — escape key", () => {
     );
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not close on Escape when closeOnEsc is false", () => {
+    const onClose = vi.fn();
+    render(
+      <Modal isOpen onClose={onClose} closeOnEsc={false}>
+        x
+      </Modal>
+    );
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("does not listen for Escape when closed", () => {

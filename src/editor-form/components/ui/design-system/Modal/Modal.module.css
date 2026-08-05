@@ -68,6 +68,29 @@
   gap: 8px;
 }
 
+.modalClose {
+  display: inline-flex;
+  padding: 4px;
+  border: none;
+  border-radius: 9999px;
+  background-color: transparent;
+  color: #666666;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.modalClose:hover {
+  color: #111111;
+  background-color: #f0f0f0;
+}
+
+.modalCloseIcon {
+  width: 16px;
+  height: 16px;
+}
+
 .modalContent {
   flex: 1;
   padding: 24px;

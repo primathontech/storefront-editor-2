@@ -43,7 +43,7 @@ const SECTIONS = {
 beforeEach(() => {
   globalThis.URL.createObjectURL = vi.fn(() => "blob:mock");
   globalThis.URL.revokeObjectURL = vi.fn();
-  useThemeStore.setState({ sections: SECTIONS });
+  useThemeStore.setState({ sections: SECTIONS, assetsStatus: "ready" });
   useAuthStore.setState({
     merchant: {
       id: "m1",
@@ -75,6 +75,20 @@ describe("SectionLibraryDialog — visibility", () => {
     expect(
       screen.getByText("Select a section on the left to see its preview."),
     ).toBeInTheDocument();
+  });
+});
+
+describe("SectionLibraryDialog — empty state", () => {
+  it("shows an empty-state message when the library has no sections", () => {
+    useThemeStore.setState({ sections: {}, assetsStatus: "ready" });
+    render(<SectionLibraryDialog open onConfirm={vi.fn()} onClose={vi.fn()} />);
+    expect(
+      screen.getByText("No section templates available."),
+    ).toBeInTheDocument();
+    // No misleading "select a section" hint when there is nothing to select.
+    expect(
+      screen.queryByText("Select a section on the left to see its preview."),
+    ).toBeNull();
   });
 });
 

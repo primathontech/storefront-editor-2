@@ -5,6 +5,7 @@ import { useThemeStore } from "../../../stores/themeStore";
 import { useTemplateStore } from "../../../stores/templateStore";
 import Dialog from "./Dialog";
 import { GenerateDialog } from "./GenerateDialog";
+import { Skeleton } from "../../../components/Skeleton";
 import generateStyles from "./GenerateDialog.module.css";
 import styles from "./SectionLibraryDialog.module.css";
 import { resolveAssetUrl } from "../../utils/preview-route";
@@ -84,6 +85,12 @@ export const SectionLibraryDialog: React.FC<SectionLibraryDialogProps> = ({
 }) => {
   const previewOrigin = useAuthStore((s) => s.merchant?.previewOrigin);
   const options = useAvailableSectionOptions();
+  // The section library arrives via the iframe's `assets` event; until then the
+  // list is legitimately empty. Distinguish "loading" from "no sections" so the
+  // panel never shows a silent blank. (idle ⇒ options empty, so the map is a
+  // no-op under the skeleton.)
+  const sectionsReady = useThemeStore((s) => s.assetsStatus === "ready");
+  const hasSections = options.length > 0;
   const [selectedLibraryKey, setSelectedLibraryKey] = React.useState<
     string | null
   >(null);
@@ -174,6 +181,14 @@ export const SectionLibraryDialog: React.FC<SectionLibraryDialogProps> = ({
             <div className={styles["content-container"]}>
               {/* Left: section list */}
               <div className={styles["section-list"]}>
+                {!sectionsReady && (
+                  <Skeleton rows={6} rowHeight="h-7" gap="gap-1" />
+                )}
+                {sectionsReady && !hasSections && (
+                  <div className={styles["empty-state-text"]}>
+                    No section templates available.
+                  </div>
+                )}
                 {options.map((option) => {
                   const isSelected = option.value === selectedLibraryKey;
                   return (
@@ -224,11 +239,11 @@ export const SectionLibraryDialog: React.FC<SectionLibraryDialogProps> = ({
                       )}
                     </div>
                   </>
-                ) : (
+                ) : hasSections ? (
                   <div className={styles["empty-state-text"]}>
                     Select a section on the left to see its preview.
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           )}

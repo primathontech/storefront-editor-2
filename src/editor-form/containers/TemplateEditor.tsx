@@ -25,7 +25,7 @@ import { EditorAPI } from "../services/api";
 import { templateSessionMachine } from "../../machines/templateSession";
 import type { ThemeStructure, ThemeStructureTemplate } from "../services/api";
 import { RESPONSIVE_FRAME_STYLE } from "../utils/preview-frame-style";
-import { buildPreviewUrl, rebasePreviewUrl } from "../utils/preview-route";
+import { buildInternalPreviewUrl, rebasePreviewUrl } from "../utils/preview-route";
 import { resolveSectionSettings } from "../utils/translation-utils";
 
 // Find the header/footer template IDs from the theme structure. Chrome
@@ -103,7 +103,6 @@ export default function TemplateEditor({
   const hasUnsavedTranslations = useTemplateStore(
     (s) => s.hasUnsavedTranslations,
   );
-  const activePreviewId = useTemplateStore((s) => s.activePreviewId);
   const previewCodeSync = useThemeStore((s) => s.previewCodeSync);
   const [creatingPreview, setCreatingPreview] = useState(false);
   const [previewLink, setPreviewLink] = useState<{
@@ -224,10 +223,34 @@ export default function TemplateEditor({
       // backend builds it from merchant.url, which may be a stale/relative
       // domain. We keep only its path+query and use previewOrigin as the host.
       const origin = useAuthStore.getState().merchant?.previewOrigin;
-      setPreviewLink({
-        url: origin ? rebasePreviewUrl(url, origin) : url,
-        version,
-      });
+      const baseUrl = origin ? rebasePreviewUrl(url, origin) : url;
+      // Append `?view={suffix}` so the merchant side can render THIS template
+      // on the sample resource (PRD §5.5). The suffix is the template id's tail
+      // after `{merchant}_{templateName}_` (e.g. dawn_products_promo → "promo",
+      // dawn_products_default → "default").
+      const templateName = tmpl.routeContext?.templateName;
+      const prefix = templateName ? `${themeId}_${templateName}_` : "";
+      const viewSuffix =
+        prefix && tmpl.id.startsWith(prefix)
+          ? tmpl.id.slice(prefix.length)
+          : (tmpl.variant ?? tmpl.id);
+      // `type` = the page type (templateName) so the merchant can type-scope
+      // the forced suffix (only that page type is forced, not chrome).
+      let finalUrl = baseUrl;
+      try {
+        const u = new URL(baseUrl);
+        u.searchParams.set("view", viewSuffix);
+        if (templateName) u.searchParams.set("type", templateName);
+        finalUrl = u.toString();
+      } catch {
+        // Relative/malformed URL — append manually.
+        const sep = baseUrl.includes("?") ? "&" : "?";
+        const extra =
+          `view=${encodeURIComponent(viewSuffix)}` +
+          (templateName ? `&type=${encodeURIComponent(templateName)}` : "");
+        finalUrl = `${baseUrl}${sep}${extra}`;
+      }
+      setPreviewLink({ url: finalUrl, version });
     } catch (err) {
       console.error("getPreviewLink failed", err);
       toast.error("Couldn't save the preview.");
@@ -415,6 +438,8 @@ export default function TemplateEditor({
               layout: pc.layout,
               sections: pageSections,
               dataSources: pc.dataSources,
+              // Publish promotes the template to live (draft → published).
+              isTemplateLive: true,
             });
             // Purge the merchant's whole preview session now that it's live.
             // By merchant (not previewId) so it clears regardless of which
@@ -560,6 +585,8 @@ export default function TemplateEditor({
         iframeWindow: win,
         previewOrigin,
         getTs: () => useTemplateStore.getState().translationService,
+        getRouteContext: () =>
+          useThemeStore.getState().currentTemplate?.routeContext ?? null,
         onSelect: (target) => {
           const store = useTemplateStore.getState();
           if (!target) {
@@ -644,16 +671,10 @@ export default function TemplateEditor({
 
   const isCommitting = state.matches({ editing: { preview: "committing" } });
   const previewLoading = state.hasTag("previewLoading");
-  // Carry the active "Save and Preview" draft id into the iframe URL so the
-  // INITIAL render resolves the draft (no live→draft flip on reload). The
-  // iframe mounts only after boot, by which point fetchTemplateData has set
-  // activePreviewId, so the very first paint already has it. Reused id ⇒ stable
-  // URL (no reload on subsequent saves); cleared on publish ⇒ reloads to live.
-  const previewUrl = buildPreviewUrl(
-    previewOrigin,
-    currentTemplate.routeContext?.path,
-    activePreviewId ? { previewId: activePreviewId } : undefined,
-  );
+  // Live preview renders on the dedicated /internal-preview route; EditorHost
+  // commits the config under a ?previewKey. (External "Save and Preview" is a
+  // separate flow via getPreviewLink.)
+  const previewUrl = buildInternalPreviewUrl(previewOrigin);
 
   const isBooting = state.matches("bootingTemplate");
   const isLoadError = state.matches("loadError");
@@ -700,13 +721,11 @@ export default function TemplateEditor({
                 aria-hidden
               >
                 <div
-                  className="h-full w-1/3 bg-linear-to-r from-blue-500 via-sky-400 to-blue-600 transition-opacity duration-150"
-                  style={{
-                    opacity: isCommitting ? 1 : 0,
-                    animation: isCommitting
-                      ? "editorPreviewProgress 1.2s ease-in-out infinite"
-                      : "none",
-                  }}
+                  className={`h-full w-1/3 bg-linear-to-r from-blue-500 via-sky-400 to-blue-600 transition-opacity duration-150 ${
+                    isCommitting
+                      ? "opacity-100 animate-[editorPreviewProgress_1.2s_ease-in-out_infinite]"
+                      : "opacity-0 animate-none"
+                  }`}
                 />
               </div>
               <iframe

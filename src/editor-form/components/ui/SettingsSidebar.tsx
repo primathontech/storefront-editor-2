@@ -18,6 +18,7 @@ import { DynamicForm } from "./DynamicForm";
 import { CloseIcon } from "./icons/CloseIcon";
 import { RemoveSectionButton } from "./RemoveSectionButton";
 import { SidebarSkeleton } from "../../../components/SidebarSkeleton";
+import { useConfirm } from "./useConfirm";
 import styles from "./SettingsSidebar.module.css";
 
 interface SettingsSidebarProps {
@@ -28,6 +29,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   translationService,
 }) => {
   const { width } = useRightSidebarWidth();
+  const { confirm, dialog } = useConfirm();
   const {
     selectedSectionId,
     selectedWidgetId,
@@ -241,10 +243,20 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
         {schemasReady && selectedSection && isRemovableSection && (
           <RemoveSectionButton
-            onClick={() => removeSection(selectedSection.id)}
+            onClick={() =>
+              confirm(
+                {
+                  title: "Remove section?",
+                  message:
+                    "This section and all its content will be removed. This can't be undone.",
+                },
+                () => removeSection(selectedSection.id)
+              )
+            }
           />
         )}
       </div>
+      {dialog}
     </DesignSidebar>
   );
 };

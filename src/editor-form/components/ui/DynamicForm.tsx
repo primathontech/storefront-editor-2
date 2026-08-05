@@ -223,6 +223,7 @@ const DynamicForm = React.forwardRef<HTMLDivElement, DynamicFormProps>(
               value={value || {}}
               onChange={handleChange}
               disabled={fieldDisabled}
+              showMargin={false}
             />
           );
 

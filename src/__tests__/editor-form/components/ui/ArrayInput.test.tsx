@@ -114,6 +114,8 @@ describe("ArrayInput — add / remove (showControls)", () => {
       <ArrayInput value={["a", "b", "c"]} onChange={onChange} showControls />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Remove item 2" }));
+    // Destructive: a confirm dialog gates the removal.
+    fireEvent.click(screen.getByRole("button", { name: /^Remove$/ }));
     expect(onChange).toHaveBeenCalledWith(["a", "c"]);
   });
 

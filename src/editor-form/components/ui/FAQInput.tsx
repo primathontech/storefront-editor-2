@@ -1,9 +1,10 @@
-import { ChevronDownIcon } from "./icons/ChevronDownIcon";
-import { ChevronUpIcon } from "./icons/ChevronUpIcon";
 import React, { useState } from "react";
+import { arrayMove } from "@dnd-kit/sortable";
 import { Input } from "./design-system";
+import { remapExpandedOnMove } from "../../utils/reorder";
+import { SortableItemCard } from "./SortableItemCard";
+import { SortableList } from "./SortableList";
 import styles from "./FAQInput.module.css";
-import { TrashRedIcon } from "./icons/TrashIcon";
 
 export interface FAQItem {
   question: string;
@@ -29,6 +30,18 @@ export const FAQInput: React.FC<FAQInputProps> = ({
   const [expandedItems, setExpandedItems] = useState<Set<number>>(
     () => new Set()
   );
+
+  const toggleItem = (index: number) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
 
   const addItem = () => {
     const newItems = [...items, { question: "", answer: "" }];
@@ -77,110 +90,59 @@ export const FAQInput: React.FC<FAQInputProps> = ({
     onChange(newItems);
   };
 
+  const handleReorder = (from: number, to: number) => {
+    const newItems = arrayMove(items, from, to);
+    setItems(newItems);
+    onChange(newItems);
+    setExpandedItems((prev) => remapExpandedOnMove(prev, from, to));
+  };
+
+  const canReorder = showControls && !disabled && items.length > 1;
+
   return (
     <div className={styles.root}>
       {label && <span className={styles.label}>{label}</span>}
 
-      <div className={styles.items}>
-        {items.map((item, index) => {
-          const expanded = expandedItems.has(index);
-
-          const handleToggle = () => {
-            if (!disabled) {
-              setExpandedItems((prev) => {
-                const next = new Set(prev);
-                if (next.has(index)) {
-                  next.delete(index);
-                } else {
-                  next.add(index);
-                }
-                return next;
-              });
-            }
-          };
-
-          return (
-            <div key={index} className={styles.itemCard}>
-              <div
-                className={`${styles.itemHeader} ${
-                  expanded ? styles.itemHeaderExpanded : ""
-                }`}
-                role="button"
-                tabIndex={0}
-                aria-expanded={expanded}
-                aria-label={`Toggle FAQ item ${index + 1}`}
-                onClick={handleToggle}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    handleToggle();
-                  }
-                }}
-              >
-                <span className={styles.itemTitle}>Item {index + 1}</span>
-
-                {showControls && (
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      if (!disabled) {
-                        removeItem(index);
-                      }
-                    }}
-                    disabled={disabled}
-                    className={styles.removeButton}
-                    aria-label={`Remove FAQ item ${index + 1}`}
-                  >
-                    <TrashRedIcon />
-                  </button>
-                )}
-
-                <span className={styles.itemChevron}>
-                  {expanded ? (
-                    <ChevronUpIcon width={16} height={16} />
-                  ) : (
-                    <ChevronDownIcon width={16} height={16} />
-                  )}
-                </span>
-              </div>
-
-              {expanded && (
-                <div className={styles.itemBody}>
-                  <div className={styles.fields}>
-                    <Input
-                      label="Question"
-                      labelVariant="subtle"
-                      type="text"
-                      size="md"
-                      value={item.question}
-                      onChange={(e) =>
-                        updateItem(index, "question", e.target.value)
-                      }
-                      disabled={disabled}
-                      placeholder="Enter Question"
-                      fullWidth
-                    />
-                    <Input
-                      label="Answer"
-                      labelVariant="subtle"
-                      type="text"
-                      size="md"
-                      value={item.answer}
-                      onChange={(e) =>
-                        updateItem(index, "answer", e.target.value)
-                      }
-                      disabled={disabled}
-                      placeholder="Enter Answer"
-                      fullWidth
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      <SortableList itemCount={items.length} onReorder={handleReorder}>
+        <div className={styles.items}>
+          {items.map((item, index) => (
+            <SortableItemCard
+              key={index}
+              index={index}
+              expanded={expandedItems.has(index)}
+              onToggle={() => toggleItem(index)}
+              disabled={disabled}
+              canReorder={canReorder}
+              showRemove={showControls}
+              onRemove={() => removeItem(index)}
+              itemNoun="FAQ item"
+            >
+              <Input
+                label="Question"
+                labelVariant="subtle"
+                type="text"
+                size="md"
+                value={item.question}
+                onChange={(e) => updateItem(index, "question", e.target.value)}
+                disabled={disabled}
+                placeholder="Enter Question"
+                fullWidth
+              />
+              <Input
+                label="Answer"
+                labelVariant="subtle"
+                type="text"
+                size="md"
+                value={item.answer}
+                onChange={(e) => updateItem(index, "answer", e.target.value)}
+                disabled={disabled}
+                placeholder="Enter Answer"
+                fullWidth
+              />
+            </SortableItemCard>
+          ))}
+        </div>
+      </SortableList>
 
       {showControls && (
         <div className={styles.addRow}>

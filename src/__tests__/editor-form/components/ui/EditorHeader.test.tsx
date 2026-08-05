@@ -2,7 +2,7 @@
 //
 // Behavioral test for the editor top bar. EditorHeader is the SUT and runs
 // for real, including the real design-system Button (a plain <button>). We
-// mock only TemplateSwitchDropdown — it pulls in the portal Dropdown which
+// mock only TemplatePicker — it pulls in the portal drill-down menu which
 // is exercised by its own test — and seed the real themeStore for the theme
 // name. We assert: theme label, device buttons call setDevice + reflect the
 // active one via aria-pressed, the "Save and Preview" button fires onPreview
@@ -11,11 +11,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 
-// Leaf mock: the template switcher renders a portal Dropdown of its own.
+// Leaf mock: the template picker renders a portal drill-down menu of its own.
 vi.mock(
-  "../../../../editor-form/components/ui/TemplateSwitchDropdown",
+  "../../../../editor-form/components/ui/TemplatePicker",
   () => ({
-    TemplateSwitchDropdown: () => <div data-testid="template-switch" />,
+    TemplatePicker: () => <div data-testid="template-switch" />,
   }),
 );
 

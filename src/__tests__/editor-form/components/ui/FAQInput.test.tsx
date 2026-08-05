@@ -118,6 +118,8 @@ describe("FAQInput — add / remove (showControls)", () => {
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Remove FAQ item 1" }));
+    // Destructive: a confirm dialog gates the removal.
+    fireEvent.click(screen.getByRole("button", { name: /^Remove$/ }));
     expect(onChange).toHaveBeenCalledWith([{ question: "Q2", answer: "A2" }]);
     expect(screen.queryByText("Item 2")).toBeNull();
   });
