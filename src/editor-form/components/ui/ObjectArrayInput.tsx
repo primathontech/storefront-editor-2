@@ -1,14 +1,15 @@
 "use client";
 
-import { ChevronDownIcon } from "./icons/ChevronDownIcon";
-import { ChevronUpIcon } from "./icons/ChevronUpIcon";
 import * as React from "react";
+import { arrayMove } from "@dnd-kit/sortable";
 import { useMediaSelector } from "../../hooks/useMediaSelector";
 import { cn } from "../../utils/utils";
+import { remapExpandedOnMove } from "../../utils/reorder";
 import type { BaseComponentProps } from "../types";
 import { Button, Input } from "./design-system";
 import { MediaIcon } from "./icons/MediaIcon";
-import { TrashRedIcon } from "./icons/TrashIcon";
+import { SortableItemCard } from "./SortableItemCard";
+import { SortableList } from "./SortableList";
 import styles from "./ObjectArrayInput.module.css";
 
 type ObjectArrayItem = Record<string, unknown>;
@@ -207,95 +208,52 @@ const ObjectArrayInput = React.forwardRef<
       onChange(newValue);
     };
 
+    const handleReorder = (from: number, to: number) => {
+      onChange(arrayMove(safeValue, from, to));
+      setExpandedItems((prev) => remapExpandedOnMove(prev, from, to));
+    };
+
+    const canReorder = showControls && !disabled && safeValue.length > 1;
+
     return (
       <div className={cn(styles.root, className)} ref={ref} {...props}>
         {label && <span className={styles.label}>{label}</span>}
 
-        <div className={styles.items}>
-          {safeValue.map((item, index) => {
-            const expanded = expandedItems.has(index);
+        <SortableList itemCount={safeValue.length} onReorder={handleReorder}>
+          <div className={styles.items}>
+            {safeValue.map((item, index) => (
+              <SortableItemCard
+                key={index}
+                index={index}
+                expanded={expandedItems.has(index)}
+                onToggle={() => toggleItem(index)}
+                disabled={disabled}
+                canReorder={canReorder}
+                showRemove={showControls}
+                onRemove={() => removeItem(index)}
+              >
+                {parsedFields.map(({ name: fieldName, mediaType }) => {
+                  const fieldValue = String(item?.[fieldName] ?? "");
 
-            const handleToggle = () => {
-              if (!disabled) {
-                toggleItem(index);
-              }
-            };
-
-            return (
-              <div key={index} className={styles.itemCard}>
-                <div
-                  className={cn(
-                    styles.itemHeader,
-                    expanded && styles.itemHeaderExpanded
-                  )}
-                  role="button"
-                  tabIndex={0}
-                  aria-expanded={expanded}
-                  aria-label={`Toggle item ${index + 1}`}
-                  onClick={handleToggle}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      handleToggle();
-                    }
-                  }}
-                >
-                  <span className={styles.itemTitle}>Item {index + 1}</span>
-
-                  {showControls && (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        if (!disabled) {
-                          removeItem(index);
-                        }
-                      }}
+                  return (
+                    <ObjectField
+                      key={fieldName}
+                      fieldName={fieldName}
+                      value={fieldValue}
+                      mediaType={mediaType}
                       disabled={disabled}
-                      className={styles.removeButton}
-                      aria-label={`Remove item ${index + 1}`}
-                    >
-                      <TrashRedIcon />
-                    </button>
-                  )}
-
-                  <span className={styles.itemChevron}>
-                    {expanded ? (
-                      <ChevronUpIcon width={16} height={16} />
-                    ) : (
-                      <ChevronDownIcon width={16} height={16} />
-                    )}
-                  </span>
-                </div>
-
-                {expanded && (
-                  <div className={styles.itemBody}>
-                    <div className={styles.fields}>
-                      {parsedFields.map(({ name: fieldName, mediaType }) => {
-                        const fieldValue = String(item?.[fieldName] ?? "");
-
-                        return (
-                          <ObjectField
-                            key={fieldName}
-                            fieldName={fieldName}
-                            value={fieldValue}
-                            mediaType={mediaType}
-                            disabled={disabled}
-                            error={error}
-                            onUpdate={(v, altText) =>
-                              updateItem(index, fieldName, v, altText)
-                            }
-                            openMediaSelector={openMediaSelector}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                      error={error}
+                      onUpdate={(v, altText) =>
+                        updateItem(index, fieldName, v, altText)
+                      }
+                      openMediaSelector={openMediaSelector}
+                    />
+                  );
+                })}
+              </SortableItemCard>
+            ))}
+          </div>
+        </SortableList>
 
         {showControls && (
           <div className={styles.addRow}>

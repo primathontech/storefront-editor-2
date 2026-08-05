@@ -56,6 +56,14 @@ export interface ModalProps {
    * Additional className for the outer container
    */
   className?: string;
+  /**
+   * Dismiss when the backdrop is clicked. Default true.
+   */
+  closeOnBackdrop?: boolean;
+  /**
+   * Dismiss when Escape is pressed. Default true.
+   */
+  closeOnEsc?: boolean;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -71,9 +79,11 @@ export const Modal: React.FC<ModalProps> = ({
   hideDefaultFooter = false,
   size = "md",
   className,
+  closeOnBackdrop = true,
+  closeOnEsc = true,
 }) => {
   React.useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen || !closeOnEsc) {
       return;
     }
 
@@ -85,11 +95,19 @@ export const Modal: React.FC<ModalProps> = ({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, closeOnEsc, onClose]);
 
   if (!isOpen) {
     return null;
   }
+
+  const handleOverlayClick = (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>
+  ) => {
+    if (closeOnBackdrop && event.target === event.currentTarget) {
+      onClose();
+    }
+  };
 
   const modalClasses = clsx(
     styles.modalContainer,
@@ -103,16 +121,39 @@ export const Modal: React.FC<ModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label={ariaLabel}
+      onClick={handleOverlayClick}
     >
       <div className={modalClasses}>
-        {(title || headerActions) && (
-          <div className={styles.modalHeader}>
-            {title && <h3 className={styles.modalTitle}>{title}</h3>}
-            {headerActions && (
-              <div className={styles.modalHeaderActions}>{headerActions}</div>
-            )}
+        <div className={styles.modalHeader}>
+          {title ? (
+            <h3 className={styles.modalTitle}>{title}</h3>
+          ) : (
+            <span />
+          )}
+          <div className={styles.modalHeaderActions}>
+            {headerActions}
+            <button
+              type="button"
+              onClick={onClose}
+              className={styles.modalClose}
+              aria-label="Close dialog"
+            >
+              <svg
+                className={styles.modalCloseIcon}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
           </div>
-        )}
+        </div>
 
         <div className={styles.modalContent}>{children}</div>
 

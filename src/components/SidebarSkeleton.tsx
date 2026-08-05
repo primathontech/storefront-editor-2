@@ -1,11 +1,5 @@
-// Placeholder sidebar content shown while a lane is booting or in error.
-// Matches the look of real sidebar rows so the layout doesn't jump.
+import { Skeleton } from "./Skeleton";
 
-export const SidebarSkeleton = () => (
-  <div className="p-3 space-y-2" aria-hidden>
-    <div className="h-10 bg-slate-100 rounded animate-pulse" />
-    <div className="h-10 bg-slate-100 rounded animate-pulse" />
-    <div className="h-10 bg-slate-100 rounded animate-pulse" />
-    <div className="h-10 bg-slate-100 rounded animate-pulse" />
-  </div>
-);
+// Booting/error placeholder for the left sidebar — row height matches real
+// sidebar rows so the layout doesn't jump.
+export const SidebarSkeleton = () => <Skeleton rows={4} className="p-3" />;

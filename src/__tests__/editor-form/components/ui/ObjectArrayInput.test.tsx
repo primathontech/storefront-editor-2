@@ -120,6 +120,8 @@ describe("ObjectArrayInput — add / remove", () => {
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Remove item 1" }));
+    // Destructive: a confirm dialog gates the removal.
+    fireEvent.click(screen.getByRole("button", { name: /^Remove$/ }));
     expect(onChange).toHaveBeenCalledWith([{ title: "b" }]);
   });
 

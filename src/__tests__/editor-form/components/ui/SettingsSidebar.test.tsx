@@ -54,6 +54,31 @@ vi.mock("../../../../editor-form/components/ui/design-system", () => ({
       icon
     </button>
   ),
+  // Confirm dialog (via useConfirm) for the destructive remove-section action.
+  Modal: ({
+    isOpen,
+    children,
+    primaryActionLabel,
+    onPrimaryAction,
+    onClose,
+  }: any) =>
+    isOpen ? (
+      <div data-testid="modal">
+        {children}
+        <button type="button" data-testid="modal-cancel" onClick={onClose}>
+          Cancel
+        </button>
+        {onPrimaryAction && (
+          <button
+            type="button"
+            data-testid="modal-confirm"
+            onClick={onPrimaryAction}
+          >
+            {primaryActionLabel}
+          </button>
+        )}
+      </div>
+    ) : null,
 }));
 // Keep the rest of the bridge real (templateStore imports commitServer from
 // it); spy only on focusSection, which the close handler fires.
@@ -279,6 +304,8 @@ describe("SettingsSidebar — remove section", () => {
     useTemplateStore.setState({ selectedSectionId: "sec1" });
     renderSidebar();
     fireEvent.click(screen.getByTestId("remove-section"));
+    // Destructive: a confirm dialog gates the removal.
+    fireEvent.click(screen.getByTestId("modal-confirm"));
     expect(useTemplateStore.getState().pageConfig.sections).toHaveLength(0);
   });
 });

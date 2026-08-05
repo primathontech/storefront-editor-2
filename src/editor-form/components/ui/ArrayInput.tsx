@@ -1,14 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDownIcon } from "./icons/ChevronDownIcon";
-import { ChevronUpIcon } from "./icons/ChevronUpIcon";
+import { arrayMove } from "@dnd-kit/sortable";
 import { useMediaSelector } from "../../hooks/useMediaSelector";
 import { Button, Input } from "./design-system";
 import type { BaseComponentProps } from "../types";
 import { cn } from "../../utils/utils";
+import { remapExpandedOnMove } from "../../utils/reorder";
 import { MediaIcon } from "./icons/MediaIcon";
-import { TrashRedIcon } from "./icons/TrashIcon";
+import { SortableItemCard } from "./SortableItemCard";
+import { SortableList } from "./SortableList";
 import styles from "./ArrayInput.module.css";
 
 export interface ArrayInputProps extends BaseComponentProps {
@@ -59,6 +60,18 @@ const ArrayInput = React.forwardRef<HTMLDivElement, ArrayInputProps>(
       () => new Set()
     );
 
+    const toggleItem = (index: number) => {
+      setExpandedItems((prev) => {
+        const next = new Set(prev);
+        if (next.has(index)) {
+          next.delete(index);
+        } else {
+          next.add(index);
+        }
+        return next;
+      });
+    };
+
     const addItem = () => {
       if (safeValue.length >= maxItems) {
         return;
@@ -103,8 +116,14 @@ const ArrayInput = React.forwardRef<HTMLDivElement, ArrayInputProps>(
       onChange(newValue);
     };
 
+    const handleReorder = (from: number, to: number) => {
+      onChange(arrayMove(safeValue, from, to));
+      setExpandedItems((prev) => remapExpandedOnMove(prev, from, to));
+    };
+
     const canAdd = safeValue.length < maxItems && !disabled;
     const canRemove = safeValue.length > minItems && !disabled;
+    const canReorder = showControls && !disabled && safeValue.length > 1;
 
     return (
       <div className={cn(styles.root, className)} ref={ref} {...props}>
@@ -119,118 +138,57 @@ const ArrayInput = React.forwardRef<HTMLDivElement, ArrayInputProps>(
           </span>
         )}
 
-        <div className={styles.items}>
-          {safeValue.map((item, index) => {
-            const expanded = expandedItems.has(index);
-
-            const handleToggle = () => {
-              if (!disabled) {
-                setExpandedItems((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(index)) {
-                    next.delete(index);
-                  } else {
-                    next.add(index);
-                  }
-                  return next;
-                });
-              }
-            };
-
-            return (
-              <div
+        <SortableList itemCount={safeValue.length} onReorder={handleReorder}>
+          <div className={styles.items}>
+            {safeValue.map((item, index) => (
+              <SortableItemCard
                 key={index}
-                className={cn(styles.itemCard, error && styles.itemCardError)}
+                index={index}
+                expanded={expandedItems.has(index)}
+                onToggle={() => toggleItem(index)}
+                disabled={disabled}
+                canReorder={canReorder}
+                showRemove={showControls && canRemove}
+                onRemove={() => removeItem(index)}
+                error={error}
               >
-                <div
-                  className={cn(
-                    styles.itemHeader,
-                    expanded && styles.itemHeaderExpanded
-                  )}
-                  role="button"
-                  tabIndex={0}
-                  aria-expanded={expanded}
-                  aria-label={`Toggle item ${index + 1}`}
-                  onClick={handleToggle}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      handleToggle();
-                    }
-                  }}
-                >
-                  <span className={styles.itemTitle}>Item {index + 1}</span>
-
-                  {showControls && canRemove && (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        removeItem(index);
-                      }}
-                      disabled={disabled}
-                      className={styles.removeButton}
-                      aria-label={`Remove item ${index + 1}`}
-                    >
-                      <TrashRedIcon />
-                    </button>
-                  )}
-
-                  <span className={styles.itemChevron}>
-                    {expanded ? (
-                      <ChevronUpIcon width={16} height={16} />
-                    ) : (
-                      <ChevronDownIcon width={16} height={16} />
-                    )}
-                  </span>
-                </div>
-
-                {expanded && (
-                  <div className={styles.itemBody}>
-                    <div className={styles.fields}>
-                      <Input
-                        type="text"
-                        labelVariant="subtle"
-                        size="md"
-                        value={item || ""}
-                        onChange={(e) => updateItem(index, e.target.value)}
-                        disabled={disabled}
-                        placeholder={placeholder}
-                        fullWidth
-                        helperText={!error ? helperText : undefined}
-                        error={error ? helperText : undefined}
-                      />
-                      {isMedia && (
-                        <Button
-                          variant="outline"
-                          size="xs"
-                          leftIcon={<MediaIcon width={14} height={14} />}
-                          onClick={() => {
-                            openMediaSelector(
-                              (media) => {
-                                if (media?.length) {
-                                  updateItem(
-                                    index,
-                                    media[0].url || media[0].src
-                                  );
-                                }
-                              },
-                              { multiple: false, allowedTypes }
-                            );
-                          }}
-                          disabled={disabled}
-                          className={styles.mediaBrowseBtn}
-                        >
-                          Browse Library
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                <Input
+                  type="text"
+                  labelVariant="subtle"
+                  size="md"
+                  value={item || ""}
+                  onChange={(e) => updateItem(index, e.target.value)}
+                  disabled={disabled}
+                  placeholder={placeholder}
+                  fullWidth
+                  helperText={!error ? helperText : undefined}
+                  error={error ? helperText : undefined}
+                />
+                {isMedia && (
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    leftIcon={<MediaIcon width={14} height={14} />}
+                    onClick={() => {
+                      openMediaSelector(
+                        (media) => {
+                          if (media?.length) {
+                            updateItem(index, media[0].url || media[0].src);
+                          }
+                        },
+                        { multiple: false, allowedTypes }
+                      );
+                    }}
+                    disabled={disabled}
+                    className={styles.mediaBrowseBtn}
+                  >
+                    Browse Library
+                  </Button>
                 )}
-              </div>
-            );
-          })}
-        </div>
+              </SortableItemCard>
+            ))}
+          </div>
+        </SortableList>
 
         {showControls && canAdd && (
           <div className={styles.addRow}>

@@ -109,6 +109,63 @@ describe("Dialog — closing", () => {
   });
 });
 
+describe("Dialog — escape key", () => {
+  it("calls onClose when Escape is pressed while open", () => {
+    const onClose = vi.fn();
+    render(
+      <Dialog open onClose={onClose}>
+        <div>x</div>
+      </Dialog>,
+    );
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not close on Escape when closeOnEsc is false", () => {
+    const onClose = vi.fn();
+    render(
+      <Dialog open onClose={onClose} closeOnEsc={false}>
+        <div>x</div>
+      </Dialog>,
+    );
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("does not listen for Escape when closed", () => {
+    const onClose = vi.fn();
+    render(
+      <Dialog open={false} onClose={onClose}>
+        <div>x</div>
+      </Dialog>,
+    );
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("ignores non-Escape keys", () => {
+    const onClose = vi.fn();
+    render(
+      <Dialog open onClose={onClose}>
+        <div>x</div>
+      </Dialog>,
+    );
+    fireEvent.keyDown(document, { key: "Enter" });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("does not close on backdrop click when closeOnBackdrop is false", () => {
+    const onClose = vi.fn();
+    const { container } = render(
+      <Dialog open onClose={onClose} closeOnBackdrop={false}>
+        <div>x</div>
+      </Dialog>,
+    );
+    fireEvent.click(container.firstElementChild as HTMLElement);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
 describe("Dialog — size variants", () => {
   it.each(["sm", "md", "lg", "xl"] as const)(
     "renders without error for size=%s",
